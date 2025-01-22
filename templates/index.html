@@ -1,63 +1,27 @@
-<!DOCTYPE html>
-<html lang="en" data-bs-theme="dark">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Pomodoro Timer</title>
-    <link
-      rel="icon"
-      href="{{ url_for('static', filename='favicon.ico') }}"
-      type="image/x-icon"
-    />
-    <link
-      rel="stylesheet"
-      href="{{ url_for('static', filename='css/bootstrap.min.css') }}"
-    />
-    <link
-      rel="stylesheet"
-      href="{{ url_for('static', filename='css/color_modes.css') }}"
-    />
-    <link
-      rel="stylesheet"
-      href="{{ url_for('static', filename='css/main.css') }}"
-    />
-    <link
-      rel="stylesheet"
-      href="{{ url_for('static', filename='css/pomodoro.css') }}"
-    />
-  </head>
-  <body class="text-center">
-    <div class="container my-5">
-      <h1 class="display-5">Keep incremental improvements!</h1>
+{% extends "_base.html" %} {% block title %}Pomodoro Timer - Home{% endblock %}
+{% block content %}
+<div class="my-5">
+  <h1 class="display-5">Keep incremental improvements!</h1>
 
-      <div id="remaining-time" class="display-1 mt-5">25:00</div>
+  <div id="remaining-time" class="display-1 mt-5">25:00</div>
 
-      <div id="status" class="display-5 mt-3">Ready</div>
+  <div id="status" class="display-5 mt-3">Ready</div>
 
-      <div class="mt-3">
-        <button id="start-button" class="btn btn-success btn-lg btn-visible">
-          Start
-        </button>
-        <button id="pause-button" class="btn btn-warning btn-lg btn-hidden">
-          Pause
-        </button>
-        <button id="resume-button" class="btn btn-success btn-lg btn-hidden">
-          Resume
-        </button>
-        <button id="reset-button" class="btn btn-danger btn-lg btn-hidden">
-          Reset
-        </button>
-      </div>
+  <div class="mt-3">
+    <button id="start-button" class="btn btn-success btn-lg btn-visible">
+      Start
+    </button>
+    <button id="pause-button" class="btn btn-warning btn-lg btn-hidden">
+      Pause
+    </button>
+    <button id="resume-button" class="btn btn-success btn-lg btn-hidden">
+      Resume
+    </button>
+    <button id="reset-button" class="btn btn-danger btn-lg btn-hidden">
+      Reset
+    </button>
+  </div>
 
-      <div id="pomodoro-container" class="mt-3"></div>
-    </div>
-
-    {% include 'color_modes.html' %}
-    <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/color_modes.js') }}"></script>
-    <script
-      type="module"
-      src="{{ url_for('static', filename='js/main.js') }}"
-    ></script>
-  </body>
-</html>
+  <div id="pomodoro-container" class="mt-3"></div>
+</div>
+{% endblock %}
