@@ -34,8 +34,8 @@
     {% block extra_css %}{% endblock %} {% block extra_js %}{% endblock %}
   </head>
   <body class="text-center">
+    {% include '_header.html' %}
     <main class="container">{% block content %} {% endblock %}</main>
-
     {% include '_color_modes.html' %}
   </body>
 </html>
