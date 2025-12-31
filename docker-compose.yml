@@ -4,10 +4,12 @@ services:
       context: .
       dockerfile: Dockerfile
     volumes:
-      - .:/app
-      - ~/.gitconfig:/root/.gitconfig
+      - ./:/app
+      - /app/node_modules
+      - /app/.next
+    ports:
+      - "3000:3000"
     environment:
-      - PYTHONPATH=/app
-      - PYTHONUNBUFFERED=1
+      - WATCHPACK_POLLING=true
     stdin_open: true
     tty: true
