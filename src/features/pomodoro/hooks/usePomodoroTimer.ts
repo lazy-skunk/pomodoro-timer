@@ -45,6 +45,8 @@ export const usePomodoroTimer = () => {
   useEffect(() => {
     alarmRef.current = new Audio("/alarm.wav");
     lowAlarmRef.current = new Audio("/low_alarm.wav");
+    alarmRef.current.load();
+    lowAlarmRef.current.load();
   }, []);
 
   useEffect(() => {
