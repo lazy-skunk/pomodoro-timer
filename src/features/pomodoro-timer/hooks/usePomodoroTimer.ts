@@ -32,11 +32,13 @@ type Pomodoro = {
   color: string;
 };
 
-const basePomodoroColor = "rgb(64, 128, 0)";
-const TICK_INTERVAL_MILLISECONDS = 250;
-const MILLISECONDS_PER_SECOND = 1000;
+type UsePomodoroTimerOptions = {
+  basePomodoroColor: string;
+};
 
-export const usePomodoroTimer = () => {
+export const usePomodoroTimer = ({
+  basePomodoroColor,
+}: UsePomodoroTimerOptions) => {
   const [remainingSeconds, setRemainingSeconds] = useState(
     WORK_DURATION_SECONDS,
   );
@@ -90,17 +92,20 @@ export const usePomodoroTimer = () => {
     [],
   );
 
-  const addPomodoro = useCallback((cycleIndex: number) => {
-    setPomodoros((previousPomodoros) => {
-      if (previousPomodoros.some((pomodoro) => pomodoro.id === cycleIndex)) {
-        return previousPomodoros;
-      }
-      return [
-        ...previousPomodoros,
-        { id: cycleIndex, color: basePomodoroColor },
-      ];
-    });
-  }, []);
+  const addPomodoro = useCallback(
+    (cycleIndex: number) => {
+      setPomodoros((previousPomodoros) => {
+        if (previousPomodoros.some((pomodoro) => pomodoro.id === cycleIndex)) {
+          return previousPomodoros;
+        }
+        return [
+          ...previousPomodoros,
+          { id: cycleIndex, color: basePomodoroColor },
+        ];
+      });
+    },
+    [basePomodoroColor],
+  );
 
   const tick = useCallback(() => {
     const currentStatus = statusRef.current;
@@ -118,7 +123,7 @@ export const usePomodoroTimer = () => {
     const remainingMilliseconds = endTime - now;
     const nextRemainingSeconds = Math.max(
       0,
-      Math.ceil(remainingMilliseconds / MILLISECONDS_PER_SECOND),
+      Math.ceil(remainingMilliseconds / 1000),
     );
     const cycleIndex = cycleCountRef.current;
 
@@ -162,15 +167,13 @@ export const usePomodoroTimer = () => {
         : SHORT_BREAK_DURATION_SECONDS;
       setRemainingSeconds(nextSeconds);
       remainingSecondsRef.current = nextSeconds;
-      endTimeRef.current =
-        performance.now() + nextSeconds * MILLISECONDS_PER_SECOND;
+      endTimeRef.current = performance.now() + nextSeconds * 1000;
       lastLowAlarmSecondRef.current = null;
     } else {
       setStatus(TIMER_STATUS.WORK);
       setRemainingSeconds(WORK_DURATION_SECONDS);
       remainingSecondsRef.current = WORK_DURATION_SECONDS;
-      endTimeRef.current =
-        performance.now() + WORK_DURATION_SECONDS * MILLISECONDS_PER_SECOND;
+      endTimeRef.current = performance.now() + WORK_DURATION_SECONDS * 1000;
       lastLowAlarmSecondRef.current = null;
     }
   }, [addPomodoro, updatePomodoroColor]);
@@ -189,7 +192,7 @@ export const usePomodoroTimer = () => {
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
     }
-    intervalRef.current = setInterval(tick, TICK_INTERVAL_MILLISECONDS);
+    intervalRef.current = setInterval(tick, 250);
 
     return () => {
       if (intervalRef.current) {
@@ -215,8 +218,7 @@ export const usePomodoroTimer = () => {
     setStatus(TIMER_STATUS.WORK);
     setRemainingSeconds(WORK_DURATION_SECONDS);
     remainingSecondsRef.current = WORK_DURATION_SECONDS;
-    endTimeRef.current =
-      performance.now() + WORK_DURATION_SECONDS * MILLISECONDS_PER_SECOND;
+    endTimeRef.current = performance.now() + WORK_DURATION_SECONDS * 1000;
     lastLowAlarmSecondRef.current = null;
     addPomodoro(cycleCountRef.current);
   };
@@ -234,8 +236,7 @@ export const usePomodoroTimer = () => {
       await audioEngineRef.current?.warmUp();
       setStatus(pausedStatusRef.current);
       endTimeRef.current =
-        performance.now() +
-        remainingSecondsRef.current * MILLISECONDS_PER_SECOND;
+        performance.now() + remainingSecondsRef.current * 1000;
     }
   };
 

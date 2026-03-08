@@ -2,9 +2,9 @@ const ALARM_FREQUENCY_HZ = 880;
 const LOW_ALARM_FREQUENCY_HZ = 440;
 const ALARM_DURATION_SECONDS = 1.0;
 const LOW_ALARM_DURATION_SECONDS = 0.5;
-const FADE_SECONDS = 0.05;
+const FADE_SECONDS = 0.025;
 const SILENT_GAIN = 0.0001;
-const MAX_GAIN = 1;
+const MAX_GAIN = 0.5;
 
 const resolveAudioContextConstructor = () => {
   return (

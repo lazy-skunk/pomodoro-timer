@@ -4,6 +4,7 @@ import { usePomodoroTimer } from "../hooks/usePomodoroTimer";
 import { formatSecondsAsClock } from "../utils/pomodoro";
 
 export default function PomodoroTimer() {
+  const basePomodoroColor = "rgb(64, 128, 0)";
   const {
     remainingSeconds,
     pomodoros,
@@ -16,7 +17,7 @@ export default function PomodoroTimer() {
     handlePause,
     handleResume,
     handleReset,
-  } = usePomodoroTimer();
+  } = usePomodoroTimer({ basePomodoroColor });
 
   const baseButtonClass =
     "inline-flex min-w-32 items-center justify-center rounded-full px-6 py-3 text-background text-lg font-semibold shadow-sm transition-transform active:scale-95";
@@ -97,7 +98,7 @@ export default function PomodoroTimer() {
 
       {pomodoros.length > 0 && (
         <div className="mt-4">
-          {pomodoros.length} pomodoro{pomodoros.length === 1 ? "" : "s"}
+          {pomodoros.length} pomodoro{pomodoros.length > 1 ? "s" : ""}
         </div>
       )}
     </div>
