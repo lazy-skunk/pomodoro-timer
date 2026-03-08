@@ -38,7 +38,9 @@ export default function PomodoroTimer() {
         {shouldShowStartButton && (
           <button
             type="button"
-            onClick={handleStart}
+            onClick={() => {
+              void handleStart();
+            }}
             className={startButtonClass}
           >
             Start
@@ -56,7 +58,9 @@ export default function PomodoroTimer() {
         {shouldShowResumeButton && (
           <button
             type="button"
-            onClick={handleResume}
+            onClick={() => {
+              void handleResume();
+            }}
             className={startButtonClass}
           >
             Resume
