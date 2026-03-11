@@ -1,296 +1,199 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { PomodoroTimerAudioEngine } from "../audio/PomodoroTimerAudioEngine";
 import {
-  LONG_BREAK_DURATION_SECONDS,
   LOW_ALARM_THRESHOLD_SECONDS,
-  MAX_CYCLE_COUNT,
-  SHORT_BREAK_DURATION_SECONDS,
   WORK_DURATION_SECONDS,
 } from "../constants";
-import { getPomodoroColorForRemainingSeconds } from "../utils/pomodoro";
-
-const TIMER_STATUS = {
-  IDLE: "idle",
-  WORK: "work",
-  BREAK: "break",
-  PAUSED: "paused",
-} as const;
-
-const STATUS_TEXT = {
-  READY: "Ready",
-  PAUSED: "Paused",
-  WORK: "Work",
-  LONG_BREAK: "Long Break",
-  SHORT_BREAK: "Short Break",
-} as const;
-
-type TimerStatus = (typeof TIMER_STATUS)[keyof typeof TIMER_STATUS];
-type RunningStatus = typeof TIMER_STATUS.WORK | typeof TIMER_STATUS.BREAK;
-
-type Pomodoro = {
-  id: number;
-  color: string;
-};
+import {
+  POMODORO_TIMER_STATUS,
+  PomodoroTimerScheduler,
+  type PomodoroTimerSchedulerState,
+} from "../schedulers/PomodoroTimerScheduler";
+import { resolveNextPomodoros, type Pomodoro } from "../utils/pomodoro";
 
 type UsePomodoroTimerOptions = {
   basePomodoroColor: string;
 };
 
+type PreparedClock = {
+  currentTimeSeconds: number;
+  getCurrentTimeSeconds: () => number | null;
+};
+
 export const usePomodoroTimer = ({
   basePomodoroColor,
 }: UsePomodoroTimerOptions) => {
-  const [remainingSeconds, setRemainingSeconds] = useState(
-    WORK_DURATION_SECONDS,
-  );
-  const [cycleCount, setCycleCount] = useState(0);
-  const [status, setStatus] = useState<TimerStatus>(TIMER_STATUS.IDLE);
+  const [timerState, setTimerState] = useState<PomodoroTimerSchedulerState>({
+    remainingSeconds: WORK_DURATION_SECONDS,
+    cycleCount: 0,
+    phase: POMODORO_TIMER_STATUS.IDLE,
+    isPaused: false,
+  });
   const [pomodoros, setPomodoros] = useState<Pomodoro[]>([]);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const audioEngineRef = useRef<PomodoroTimerAudioEngine | null>(null);
-  const endTimeRef = useRef<number | null>(null);
-  const lastLowAlarmSecondRef = useRef<number | null>(null);
-  const statusRef = useRef(status);
-  const remainingSecondsRef = useRef(remainingSeconds);
-  const cycleCountRef = useRef(cycleCount);
-  const pausedStatusRef = useRef<RunningStatus>(TIMER_STATUS.WORK);
+  const schedulerRef = useRef<PomodoroTimerScheduler | null>(null);
+  const previousTimerStateRef = useRef(timerState);
+  const basePomodoroColorRef = useRef(basePomodoroColor);
+  const activeClockRef = useRef<PreparedClock | null>(null);
+
+  useEffect(() => {
+    basePomodoroColorRef.current = basePomodoroColor;
+  }, [basePomodoroColor]);
+
+  const getPerformanceNowSeconds = useCallback(() => performance.now() / 1000, []);
+
+  const createPerformanceClock = useCallback((): PreparedClock => {
+    return {
+      currentTimeSeconds: getPerformanceNowSeconds(),
+      getCurrentTimeSeconds: getPerformanceNowSeconds,
+    };
+  }, [getPerformanceNowSeconds]);
+
+  const prepareClock = useCallback(async () => {
+    try {
+      const audioContext = await audioEngineRef.current?.prepare();
+      if (audioContext) {
+        const audioClock: PreparedClock = {
+          currentTimeSeconds: audioContext.currentTime,
+          getCurrentTimeSeconds: () => {
+            const currentAudioContext = audioEngineRef.current?.getAudioContext();
+            if (!currentAudioContext || currentAudioContext !== audioContext) {
+              return null;
+            }
+
+            return currentAudioContext.currentTime;
+          },
+        };
+        activeClockRef.current = audioClock;
+        return audioClock.currentTimeSeconds;
+      }
+    } catch {
+      if (process.env.NODE_ENV !== "production") {
+        console.warn(
+          "usePomodoroTimer: audio clock unavailable, falling back to performance clock.",
+        );
+      }
+    }
+
+    const performanceClock = createPerformanceClock();
+    activeClockRef.current = performanceClock;
+    return performanceClock.currentTimeSeconds;
+  }, [createPerformanceClock]);
+
+  const getCurrentTimeSeconds = useCallback(() => {
+    return activeClockRef.current?.getCurrentTimeSeconds() ?? null;
+  }, []);
 
   useEffect(() => {
     const audioEngine = new PomodoroTimerAudioEngine();
+    const scheduler = new PomodoroTimerScheduler({
+      clock: {
+        prepare: prepareClock,
+        getCurrentTimeSeconds,
+      },
+      onClockUnavailable: () => {
+        activeClockRef.current = null;
+        audioEngine.stop();
+        setErrorMessage("The timer stopped unexpectedly. Please start again.");
+        if (process.env.NODE_ENV !== "production") {
+          console.warn(
+            "usePomodoroTimer: active clock became unavailable, timer stopped.",
+          );
+        }
+      },
+      onStateChanged: (nextState) => {
+        const previousState = previousTimerStateRef.current;
+        previousTimerStateRef.current = nextState;
+        setTimerState(nextState);
+        setPomodoros((previousPomodoros) => {
+          if (nextState.phase === POMODORO_TIMER_STATUS.IDLE) {
+            return [];
+          }
+
+          return resolveNextPomodoros(
+            previousPomodoros,
+            previousState,
+            nextState,
+            basePomodoroColorRef.current,
+            WORK_DURATION_SECONDS,
+          );
+        });
+      },
+      onPhaseStarted: (
+        _state: PomodoroTimerSchedulerState,
+        phaseStartTimeSeconds: number,
+        durationSeconds: number,
+      ) => {
+        const alarmTimeSeconds = phaseStartTimeSeconds + durationSeconds;
+        const lowAlarmCount = Math.min(
+          LOW_ALARM_THRESHOLD_SECONDS,
+          Math.floor(durationSeconds),
+        );
+
+        for (
+          let remainingSeconds = lowAlarmCount;
+          remainingSeconds >= 1;
+          remainingSeconds -= 1
+        ) {
+          audioEngine.scheduleLowAlarm(
+            alarmTimeSeconds - remainingSeconds,
+          );
+        }
+
+        audioEngine.scheduleAlarm(alarmTimeSeconds);
+      },
+    });
     audioEngineRef.current = audioEngine;
+    schedulerRef.current = scheduler;
 
     return () => {
+      scheduler.dispose();
+      schedulerRef.current = null;
+      activeClockRef.current = null;
       void audioEngine.dispose();
       audioEngineRef.current = null;
     };
-  }, []);
+  }, [getCurrentTimeSeconds, prepareClock]);
 
-  useEffect(() => {
-    statusRef.current = status;
-  }, [status]);
-
-  useEffect(() => {
-    remainingSecondsRef.current = remainingSeconds;
-  }, [remainingSeconds]);
-
-  useEffect(() => {
-    cycleCountRef.current = cycleCount;
-  }, [cycleCount]);
-
-  const updatePomodoroColor = useCallback(
-    (cycleIndex: number, remainingSecondsValue: number) => {
-      const color = getPomodoroColorForRemainingSeconds(
-        remainingSecondsValue,
-        WORK_DURATION_SECONDS,
-      );
-      setPomodoros((previousPomodoros) =>
-        previousPomodoros.map((pomodoro) =>
-          pomodoro.id === cycleIndex ? { ...pomodoro, color } : pomodoro,
-        ),
-      );
-    },
-    [],
-  );
-
-  const addPomodoro = useCallback(
-    (cycleIndex: number) => {
-      setPomodoros((previousPomodoros) => {
-        if (previousPomodoros.some((pomodoro) => pomodoro.id === cycleIndex)) {
-          return previousPomodoros;
-        }
-        return [
-          ...previousPomodoros,
-          { id: cycleIndex, color: basePomodoroColor },
-        ];
-      });
-    },
-    [basePomodoroColor],
-  );
-
-  const tick = useCallback(() => {
-    const currentStatus = statusRef.current;
-    if (
-      currentStatus === TIMER_STATUS.IDLE ||
-      currentStatus === TIMER_STATUS.PAUSED
-    ) {
-      return;
-    }
-    const endTime = endTimeRef.current;
-    if (!endTime) {
-      return;
-    }
-    const now = performance.now();
-    const remainingMilliseconds = endTime - now;
-    const nextRemainingSeconds = Math.max(
-      0,
-      Math.ceil(remainingMilliseconds / 1000),
-    );
-    const cycleIndex = cycleCountRef.current;
-
-    if (remainingMilliseconds > 0) {
-      setRemainingSeconds(nextRemainingSeconds);
-      remainingSecondsRef.current = nextRemainingSeconds;
-
-      if (nextRemainingSeconds > LOW_ALARM_THRESHOLD_SECONDS) {
-        lastLowAlarmSecondRef.current = null;
-      } else if (nextRemainingSeconds <= LOW_ALARM_THRESHOLD_SECONDS) {
-        if (lastLowAlarmSecondRef.current !== nextRemainingSeconds) {
-          audioEngineRef.current?.playLowAlarm();
-          lastLowAlarmSecondRef.current = nextRemainingSeconds;
-        }
-      }
-
-      if (currentStatus === TIMER_STATUS.WORK) {
-        updatePomodoroColor(cycleIndex, nextRemainingSeconds);
-      }
-
-      return;
-    }
-
-    audioEngineRef.current?.playAlarm();
-    endTimeRef.current = null;
-
-    if (currentStatus === TIMER_STATUS.BREAK) {
-      addPomodoro(cycleIndex);
-    } else if (currentStatus === TIMER_STATUS.WORK) {
-      updatePomodoroColor(cycleIndex, 0);
-    }
-
-    if (currentStatus === TIMER_STATUS.WORK) {
-      const nextCycleCount = cycleIndex + 1;
-      setCycleCount(nextCycleCount);
-      cycleCountRef.current = nextCycleCount;
-      setStatus(TIMER_STATUS.BREAK);
-      const isLongBreak = nextCycleCount % MAX_CYCLE_COUNT === 0;
-      const nextSeconds = isLongBreak
-        ? LONG_BREAK_DURATION_SECONDS
-        : SHORT_BREAK_DURATION_SECONDS;
-      setRemainingSeconds(nextSeconds);
-      remainingSecondsRef.current = nextSeconds;
-      endTimeRef.current = performance.now() + nextSeconds * 1000;
-      lastLowAlarmSecondRef.current = null;
-    } else {
-      setStatus(TIMER_STATUS.WORK);
-      setRemainingSeconds(WORK_DURATION_SECONDS);
-      remainingSecondsRef.current = WORK_DURATION_SECONDS;
-      endTimeRef.current = performance.now() + WORK_DURATION_SECONDS * 1000;
-      lastLowAlarmSecondRef.current = null;
-    }
-  }, [addPomodoro, updatePomodoroColor]);
-
-  useEffect(() => {
-    const isRunning =
-      status === TIMER_STATUS.WORK || status === TIMER_STATUS.BREAK;
-    if (!isRunning) {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
-      return;
-    }
-
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-    }
-    intervalRef.current = setInterval(tick, 250);
-
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
-    };
-  }, [status, tick]);
-
-  useEffect(() => {
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
-    };
-  }, []);
-
-  const handleStart = async () => {
-    if (status !== TIMER_STATUS.IDLE) {
-      return;
-    }
-    await audioEngineRef.current?.warmUp();
-    setStatus(TIMER_STATUS.WORK);
-    setRemainingSeconds(WORK_DURATION_SECONDS);
-    remainingSecondsRef.current = WORK_DURATION_SECONDS;
-    endTimeRef.current = performance.now() + WORK_DURATION_SECONDS * 1000;
-    lastLowAlarmSecondRef.current = null;
-    addPomodoro(cycleCountRef.current);
+  const startTimer = async () => {
+    setErrorMessage(null);
+    const didStart = await schedulerRef.current?.start();
+    return didStart ?? false;
   };
 
-  const handlePause = () => {
-    if (status === TIMER_STATUS.WORK || status === TIMER_STATUS.BREAK) {
-      pausedStatusRef.current = status;
-      setStatus(TIMER_STATUS.PAUSED);
-      endTimeRef.current = null;
-    }
+  const pauseTimer = () => {
+    audioEngineRef.current?.stop();
+    schedulerRef.current?.pause();
   };
 
-  const handleResume = async () => {
-    if (status === TIMER_STATUS.PAUSED) {
-      await audioEngineRef.current?.warmUp();
-      setStatus(pausedStatusRef.current);
-      endTimeRef.current =
-        performance.now() + remainingSecondsRef.current * 1000;
-    }
+  const resumeTimer = async () => {
+    setErrorMessage(null);
+    return (await schedulerRef.current?.resume()) ?? false;
   };
 
-  const handleReset = () => {
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
-    setRemainingSeconds(WORK_DURATION_SECONDS);
-    setCycleCount(0);
-    cycleCountRef.current = 0;
-    remainingSecondsRef.current = WORK_DURATION_SECONDS;
-    pausedStatusRef.current = TIMER_STATUS.WORK;
-    setPomodoros([]);
-    setStatus(TIMER_STATUS.IDLE);
-    endTimeRef.current = null;
-    lastLowAlarmSecondRef.current = null;
+  const resetTimer = () => {
+    audioEngineRef.current?.stop();
+    schedulerRef.current?.reset();
+    activeClockRef.current = null;
+    setErrorMessage(null);
   };
 
-  const statusText = (() => {
-    if (status === TIMER_STATUS.IDLE) {
-      return STATUS_TEXT.READY;
-    }
-    if (status === TIMER_STATUS.PAUSED) {
-      return STATUS_TEXT.PAUSED;
-    }
-    if (status === TIMER_STATUS.WORK) {
-      return STATUS_TEXT.WORK;
-    }
-    if (status === TIMER_STATUS.BREAK) {
-      return cycleCount % MAX_CYCLE_COUNT === 0
-        ? STATUS_TEXT.LONG_BREAK
-        : STATUS_TEXT.SHORT_BREAK;
-    }
-    return "";
-  })();
-
-  const shouldShowStartButton = status === TIMER_STATUS.IDLE;
-  const shouldShowPauseButton =
-    status === TIMER_STATUS.WORK || status === TIMER_STATUS.BREAK;
-  const shouldShowResumeButton = status === TIMER_STATUS.PAUSED;
-  const shouldShowResetButton = status !== TIMER_STATUS.IDLE;
+  const phase = timerState.phase;
+  const isPaused = timerState.isPaused;
 
   return {
-    remainingSeconds,
+    timerState,
     pomodoros,
-    statusText,
-    shouldShowStartButton,
-    shouldShowPauseButton,
-    shouldShowResumeButton,
-    shouldShowResetButton,
-    handleStart,
-    handlePause,
-    handleResume,
-    handleReset,
+    errorMessage,
+    canStart: phase === POMODORO_TIMER_STATUS.IDLE,
+    canPause: phase !== POMODORO_TIMER_STATUS.IDLE && !isPaused,
+    canResume: isPaused,
+    canReset: phase !== POMODORO_TIMER_STATUS.IDLE,
+    startTimer,
+    pauseTimer,
+    resumeTimer,
+    resetTimer,
   };
 };

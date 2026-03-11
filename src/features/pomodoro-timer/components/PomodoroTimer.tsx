@@ -1,22 +1,36 @@
 "use client";
 
 import { usePomodoroTimer } from "../hooks/usePomodoroTimer";
+import {
+  POMODORO_TIMER_STATUS,
+  type PomodoroTimerPhase,
+} from "../schedulers/PomodoroTimerScheduler";
 import { formatSecondsAsClock } from "../utils/pomodoro";
+
+const STATUS_TEXT = {
+  READY: "Ready",
+  PAUSED_WORK: "Paused (Work)",
+  PAUSED_LONG_BREAK: "Paused (Long Break)",
+  PAUSED_SHORT_BREAK: "Paused (Short Break)",
+  WORK: "Work",
+  LONG_BREAK: "Long Break",
+  SHORT_BREAK: "Short Break",
+} as const;
 
 export default function PomodoroTimer() {
   const basePomodoroColor = "rgb(64, 128, 0)";
   const {
-    remainingSeconds,
+    timerState,
     pomodoros,
-    statusText,
-    shouldShowStartButton,
-    shouldShowPauseButton,
-    shouldShowResumeButton,
-    shouldShowResetButton,
-    handleStart,
-    handlePause,
-    handleResume,
-    handleReset,
+    errorMessage,
+    canStart,
+    canPause,
+    canResume,
+    canReset,
+    startTimer,
+    pauseTimer,
+    resumeTimer,
+    resetTimer,
   } = usePomodoroTimer({ basePomodoroColor });
 
   const baseButtonClass =
@@ -24,53 +38,62 @@ export default function PomodoroTimer() {
   const startButtonClass = `${baseButtonClass} bg-emerald-500 hover:bg-emerald-600`;
   const pauseButtonClass = `${baseButtonClass} bg-amber-500 hover:bg-amber-600`;
   const resetButtonClass = `${baseButtonClass} bg-rose-500 hover:bg-rose-600`;
+  const statusText = resolveStatusText(timerState.phase, timerState.isPaused);
 
   return (
     <div className="p-5 flex flex-col items-center text-center">
       <h1 className="text-3xl font-bold">Keep incremental improvements!</h1>
 
       <div className="mt-6 text-6xl font-black">
-        {formatSecondsAsClock(remainingSeconds)}
+        {formatSecondsAsClock(timerState.remainingSeconds)}
       </div>
 
-      <div className="mt-3 text-xl font-medium">{statusText}</div>
+      <div className="mt-3 text-xl font-medium">
+        {statusText}
+      </div>
+
+      {errorMessage && (
+        <div className="mt-3 max-w-md rounded-2xl bg-rose-100 px-4 py-3 text-sm font-medium text-rose-700">
+          {errorMessage}
+        </div>
+      )}
 
       <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-        {shouldShowStartButton && (
+        {canStart && (
           <button
             type="button"
             onClick={() => {
-              void handleStart();
+              void startTimer();
             }}
             className={startButtonClass}
           >
             Start
           </button>
         )}
-        {shouldShowPauseButton && (
+        {canPause && (
           <button
             type="button"
-            onClick={handlePause}
+            onClick={pauseTimer}
             className={pauseButtonClass}
           >
             Pause
           </button>
         )}
-        {shouldShowResumeButton && (
+        {canResume && (
           <button
             type="button"
             onClick={() => {
-              void handleResume();
+              void resumeTimer();
             }}
             className={startButtonClass}
           >
             Resume
           </button>
         )}
-        {shouldShowResetButton && (
+        {canReset && (
           <button
             type="button"
-            onClick={handleReset}
+            onClick={resetTimer}
             className={resetButtonClass}
           >
             Reset
@@ -104,3 +127,33 @@ export default function PomodoroTimer() {
     </div>
   );
 }
+
+const resolveStatusText = (
+  phase: PomodoroTimerPhase,
+  isPaused: boolean,
+) => {
+  if (phase === POMODORO_TIMER_STATUS.IDLE) {
+    return STATUS_TEXT.READY;
+  }
+  if (isPaused) {
+    if (phase === POMODORO_TIMER_STATUS.WORK) {
+      return STATUS_TEXT.PAUSED_WORK;
+    }
+    if (phase === POMODORO_TIMER_STATUS.LONG_BREAK) {
+      return STATUS_TEXT.PAUSED_LONG_BREAK;
+    }
+    if (phase === POMODORO_TIMER_STATUS.SHORT_BREAK) {
+      return STATUS_TEXT.PAUSED_SHORT_BREAK;
+    }
+  }
+  if (phase === POMODORO_TIMER_STATUS.WORK) {
+    return STATUS_TEXT.WORK;
+  }
+  if (phase === POMODORO_TIMER_STATUS.LONG_BREAK) {
+    return STATUS_TEXT.LONG_BREAK;
+  }
+  if (phase === POMODORO_TIMER_STATUS.SHORT_BREAK) {
+    return STATUS_TEXT.SHORT_BREAK;
+  }
+  return "";
+};
