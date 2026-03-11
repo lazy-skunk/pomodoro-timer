@@ -38,7 +38,7 @@ type PomodoroTimerSchedulerOptions = {
   ) => void;
 };
 
-const TICK_INTERVAL_MILLISECONDS = 250;
+const TICK_INTERVAL_MILLISECONDS = 1000;
 
 export class PomodoroTimerScheduler {
   private tickerIntervalId: ReturnType<typeof setInterval> | null = null;
@@ -183,11 +183,12 @@ export class PomodoroTimerScheduler {
     const remainingSeconds = Math.max(0, Math.ceil(remainingMilliseconds / 1000));
 
     if (remainingMilliseconds > 0) {
+      const previousState = this.state;
       this.state = {
         ...this.state,
         remainingSeconds,
       };
-      this.notifyStateChanged();
+      this.notifyStateChanged(previousState);
       return;
     }
 
@@ -262,7 +263,11 @@ export class PomodoroTimerScheduler {
     this.tickerIntervalId = null;
   }
 
-  private notifyStateChanged() {
+  private notifyStateChanged(previousState?: PomodoroTimerSchedulerState) {
+    if (previousState && areSchedulerStatesEqual(previousState, this.state)) {
+      return;
+    }
+
     this.onStateChanged?.(this.state);
   }
 
@@ -284,4 +289,16 @@ const resolveBreakPhase = (cycleCount: number): PomodoroTimerPhase => {
   return cycleCount % MAX_CYCLE_COUNT === 0
     ? POMODORO_TIMER_STATUS.LONG_BREAK
     : POMODORO_TIMER_STATUS.SHORT_BREAK;
+};
+
+const areSchedulerStatesEqual = (
+  left: PomodoroTimerSchedulerState,
+  right: PomodoroTimerSchedulerState,
+) => {
+  return (
+    left.remainingSeconds === right.remainingSeconds &&
+    left.cycleCount === right.cycleCount &&
+    left.phase === right.phase &&
+    left.isPaused === right.isPaused
+  );
 };
