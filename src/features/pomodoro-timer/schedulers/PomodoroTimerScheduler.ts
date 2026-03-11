@@ -42,6 +42,8 @@ const TICK_INTERVAL_MILLISECONDS = 1000;
 
 export class PomodoroTimerScheduler {
   private tickerIntervalId: ReturnType<typeof setInterval> | null = null;
+  private isPreparingClock = false;
+  private prepareRequestId = 0;
 
   private readonly clock: PomodoroTimerSchedulerClock;
   private readonly onStateChanged?: (state: PomodoroTimerSchedulerState) => void;
@@ -81,21 +83,38 @@ export class PomodoroTimerScheduler {
   }
 
   public async start() {
-    if (this.state.phase !== POMODORO_TIMER_STATUS.IDLE) {
+    if (
+      this.state.phase !== POMODORO_TIMER_STATUS.IDLE ||
+      this.isPreparingClock
+    ) {
       return false;
     }
 
-    const currentTimeSeconds = await this.clock.prepare();
+    this.isPreparingClock = true;
+    const requestId = ++this.prepareRequestId;
 
-    this.state = {
-      remainingSeconds: WORK_DURATION_SECONDS,
-      cycleCount: 0,
-      phase: POMODORO_TIMER_STATUS.WORK,
-      isPaused: false,
-    };
-    this.startPhase(currentTimeSeconds, WORK_DURATION_SECONDS);
-    this.notifyStateChanged();
-    return true;
+    try {
+      const currentTimeSeconds = await this.clock.prepare();
+
+      if (
+        requestId !== this.prepareRequestId ||
+        this.state.phase !== POMODORO_TIMER_STATUS.IDLE
+      ) {
+        return false;
+      }
+
+      this.state = {
+        remainingSeconds: WORK_DURATION_SECONDS,
+        cycleCount: 0,
+        phase: POMODORO_TIMER_STATUS.WORK,
+        isPaused: false,
+      };
+      this.startPhase(currentTimeSeconds, WORK_DURATION_SECONDS);
+      this.notifyStateChanged();
+      return true;
+    } finally {
+      this.isPreparingClock = false;
+    }
   }
 
   public pause() {
@@ -119,20 +138,34 @@ export class PomodoroTimerScheduler {
   }
 
   public async resume() {
-    if (!this.state.isPaused) {
+    if (!this.state.isPaused || this.isPreparingClock) {
       return false;
     }
 
-    const currentTimeSeconds = await this.clock.prepare();
+    this.isPreparingClock = true;
+    const requestId = ++this.prepareRequestId;
 
-    this.state = {
-      ...this.state,
-      phase: this.pausedPhase,
-      isPaused: false,
-    };
-    this.startPhase(currentTimeSeconds, this.pausedRemainingDurationSeconds);
-    this.notifyStateChanged();
-    return true;
+    try {
+      const currentTimeSeconds = await this.clock.prepare();
+
+      if (
+        requestId !== this.prepareRequestId ||
+        !this.state.isPaused
+      ) {
+        return false;
+      }
+
+      this.state = {
+        ...this.state,
+        phase: this.pausedPhase,
+        isPaused: false,
+      };
+      this.startPhase(currentTimeSeconds, this.pausedRemainingDurationSeconds);
+      this.notifyStateChanged();
+      return true;
+    } finally {
+      this.isPreparingClock = false;
+    }
   }
 
   public reset() {
@@ -140,6 +173,8 @@ export class PomodoroTimerScheduler {
   }
 
   public stop(options?: { notifyStateChanged?: boolean }) {
+    this.prepareRequestId += 1;
+    this.isPreparingClock = false;
     this.stopTicker();
     this.endTimeSeconds = null;
     this.pausedRemainingDurationSeconds = WORK_DURATION_SECONDS;
