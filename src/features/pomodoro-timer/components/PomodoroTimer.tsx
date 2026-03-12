@@ -48,9 +48,7 @@ export default function PomodoroTimer() {
         {formatSecondsAsClock(timerState.remainingSeconds)}
       </div>
 
-      <div className="mt-3 text-xl font-medium">
-        {statusText}
-      </div>
+      <div className="mt-3 text-xl font-medium">{statusText}</div>
 
       {errorMessage && (
         <div className="mt-3 max-w-md rounded-2xl bg-rose-100 px-4 py-3 text-sm font-medium text-rose-700">
@@ -128,10 +126,7 @@ export default function PomodoroTimer() {
   );
 }
 
-const resolveStatusText = (
-  phase: PomodoroTimerPhase,
-  isPaused: boolean,
-) => {
+const resolveStatusText = (phase: PomodoroTimerPhase, isPaused: boolean) => {
   if (phase === POMODORO_TIMER_STATUS.IDLE) {
     return STATUS_TEXT.READY;
   }

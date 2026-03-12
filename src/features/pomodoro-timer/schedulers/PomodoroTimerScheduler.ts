@@ -46,7 +46,9 @@ export class PomodoroTimerScheduler {
   private prepareRequestId = 0;
 
   private readonly clock: PomodoroTimerSchedulerClock;
-  private readonly onStateChanged?: (state: PomodoroTimerSchedulerState) => void;
+  private readonly onStateChanged?: (
+    state: PomodoroTimerSchedulerState,
+  ) => void;
   private readonly onClockUnavailable?: () => void;
   private readonly onPhaseStarted?: (
     state: PomodoroTimerSchedulerState,
@@ -127,7 +129,8 @@ export class PomodoroTimerScheduler {
 
     this.pausedPhase = this.state.phase;
     this.stopTicker();
-    this.pausedRemainingDurationSeconds = this.resolveRemainingDurationSeconds();
+    this.pausedRemainingDurationSeconds =
+      this.resolveRemainingDurationSeconds();
     this.endTimeSeconds = null;
     this.state = {
       ...this.state,
@@ -148,10 +151,7 @@ export class PomodoroTimerScheduler {
     try {
       const currentTimeSeconds = await this.clock.prepare();
 
-      if (
-        requestId !== this.prepareRequestId ||
-        !this.state.isPaused
-      ) {
+      if (requestId !== this.prepareRequestId || !this.state.isPaused) {
         return false;
       }
 
@@ -215,7 +215,10 @@ export class PomodoroTimerScheduler {
 
     const remainingMilliseconds =
       (this.endTimeSeconds - currentTimeSeconds) * 1000;
-    const remainingSeconds = Math.max(0, Math.ceil(remainingMilliseconds / 1000));
+    const remainingSeconds = Math.max(
+      0,
+      Math.ceil(remainingMilliseconds / 1000),
+    );
 
     if (remainingMilliseconds > 0) {
       const previousState = this.state;
@@ -266,10 +269,7 @@ export class PomodoroTimerScheduler {
     this.startPhase(phaseStartTimeSeconds, WORK_DURATION_SECONDS);
   }
 
-  private startPhase(
-    phaseStartTimeSeconds: number,
-    durationSeconds: number,
-  ) {
+  private startPhase(phaseStartTimeSeconds: number, durationSeconds: number) {
     this.endTimeSeconds = phaseStartTimeSeconds + durationSeconds;
     this.pausedRemainingDurationSeconds = durationSeconds;
     this.state = {

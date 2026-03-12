@@ -73,9 +73,7 @@ export const resolveNextPomodoros = (
 
   const previousPhase = previousState.phase;
   const nextPhase = nextState.phase;
-  const previousRunningPhase = previousState.isPaused
-    ? null
-    : previousPhase;
+  const previousRunningPhase = previousState.isPaused ? null : previousPhase;
   const nextRunningPhase = nextState.isPaused ? null : nextPhase;
 
   if (

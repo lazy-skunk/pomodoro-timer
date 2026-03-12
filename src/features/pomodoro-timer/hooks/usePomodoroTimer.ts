@@ -42,7 +42,10 @@ export const usePomodoroTimer = ({
     basePomodoroColorRef.current = basePomodoroColor;
   }, [basePomodoroColor]);
 
-  const getPerformanceNowSeconds = useCallback(() => performance.now() / 1000, []);
+  const getPerformanceNowSeconds = useCallback(
+    () => performance.now() / 1000,
+    [],
+  );
 
   const createPerformanceClock = useCallback((): PreparedClock => {
     return {
@@ -58,7 +61,8 @@ export const usePomodoroTimer = ({
         const audioClock: PreparedClock = {
           currentTimeSeconds: audioContext.currentTime,
           getCurrentTimeSeconds: () => {
-            const currentAudioContext = audioEngineRef.current?.getAudioContext();
+            const currentAudioContext =
+              audioEngineRef.current?.getAudioContext();
             if (!currentAudioContext || currentAudioContext !== audioContext) {
               return null;
             }
@@ -137,9 +141,7 @@ export const usePomodoroTimer = ({
           remainingSeconds >= 1;
           remainingSeconds -= 1
         ) {
-          audioEngine.scheduleLowAlarm(
-            alarmTimeSeconds - remainingSeconds,
-          );
+          audioEngine.scheduleLowAlarm(alarmTimeSeconds - remainingSeconds);
         }
 
         audioEngine.scheduleAlarm(alarmTimeSeconds);
