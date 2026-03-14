@@ -3,12 +3,12 @@ import {
   LONG_BREAK_DURATION_SECONDS,
   SHORT_BREAK_DURATION_SECONDS,
   WORK_DURATION_SECONDS,
-} from "../constants";
+} from "@/features/pomodoro-timer/constants";
 import {
   POMODORO_TIMER_STATUS,
   PomodoroTimerScheduler,
   type PomodoroTimerSchedulerState,
-} from "./PomodoroTimerScheduler";
+} from "@/features/pomodoro-timer/services/schedulers/PomodoroTimerScheduler";
 
 type Deferred<T> = {
   promise: Promise<T>;

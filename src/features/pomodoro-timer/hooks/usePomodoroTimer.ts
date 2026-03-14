@@ -1,15 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { PomodoroTimerAudioEngine } from "../audio/PomodoroTimerAudioEngine";
+import { PomodoroTimerAudioEngine } from "@/features/pomodoro-timer/services/audio/PomodoroTimerAudioEngine";
 import {
   LOW_ALARM_THRESHOLD_SECONDS,
   WORK_DURATION_SECONDS,
-} from "../constants";
+} from "@/features/pomodoro-timer/constants";
 import {
   POMODORO_TIMER_STATUS,
   PomodoroTimerScheduler,
   type PomodoroTimerSchedulerState,
-} from "../schedulers/PomodoroTimerScheduler";
-import { resolveNextPomodoros, type Pomodoro } from "../utils/pomodoro";
+} from "@/features/pomodoro-timer/services/schedulers/PomodoroTimerScheduler";
+import {
+  resolveNextPomodoros,
+  type Pomodoro,
+} from "@/features/pomodoro-timer/utils/pomodoro";
 
 type UsePomodoroTimerOptions = {
   basePomodoroColor: string;

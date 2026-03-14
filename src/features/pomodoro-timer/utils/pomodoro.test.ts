@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { WORK_DURATION_SECONDS } from "../constants";
-import { POMODORO_TIMER_STATUS } from "../schedulers/PomodoroTimerScheduler";
+import { WORK_DURATION_SECONDS } from "@/features/pomodoro-timer/constants";
+import { POMODORO_TIMER_STATUS } from "@/features/pomodoro-timer/services/schedulers/PomodoroTimerScheduler";
 import {
   formatSecondsAsClock,
   getPomodoroColorForRemainingSeconds,
   resolveNextPomodoros,
   type Pomodoro,
-} from "./pomodoro";
+} from "@/features/pomodoro-timer/utils/pomodoro";
 
 describe("pomodoro utils", () => {
   it("formats seconds as a clock string", () => {

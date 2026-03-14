@@ -3,7 +3,7 @@
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { POMODORO_TIMER_STATUS } from "../schedulers/PomodoroTimerScheduler";
+import { POMODORO_TIMER_STATUS } from "@/features/pomodoro-timer/services/schedulers/PomodoroTimerScheduler";
 
 const startTimer = vi.fn(async () => true);
 const pauseTimer = vi.fn();
@@ -12,11 +12,11 @@ const resetTimer = vi.fn();
 
 const usePomodoroTimerMock = vi.fn();
 
-vi.mock("../hooks/usePomodoroTimer", () => ({
+vi.mock("@/features/pomodoro-timer/hooks/usePomodoroTimer", () => ({
   usePomodoroTimer: (...args: unknown[]) => usePomodoroTimerMock(...args),
 }));
 
-import PomodoroTimer from "./PomodoroTimer";
+import PomodoroTimer from "@/features/pomodoro-timer/components/PomodoroTimer";
 
 describe("PomodoroTimer", () => {
   let container: HTMLDivElement;

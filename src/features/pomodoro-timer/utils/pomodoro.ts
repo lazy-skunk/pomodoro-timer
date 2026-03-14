@@ -1,7 +1,7 @@
 import {
   POMODORO_TIMER_STATUS,
   type PomodoroTimerSchedulerState,
-} from "../schedulers/PomodoroTimerScheduler";
+} from "@/features/pomodoro-timer/services/schedulers/PomodoroTimerScheduler";
 
 export const formatSecondsAsClock = (totalSeconds: number) => {
   const minutes = Math.floor(totalSeconds / 60);

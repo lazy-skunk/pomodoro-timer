@@ -1,11 +1,11 @@
 "use client";
 
-import { usePomodoroTimer } from "../hooks/usePomodoroTimer";
+import { usePomodoroTimer } from "@/features/pomodoro-timer/hooks/usePomodoroTimer";
 import {
   POMODORO_TIMER_STATUS,
   type PomodoroTimerPhase,
-} from "../schedulers/PomodoroTimerScheduler";
-import { formatSecondsAsClock } from "../utils/pomodoro";
+} from "@/features/pomodoro-timer/services/schedulers/PomodoroTimerScheduler";
+import { formatSecondsAsClock } from "@/features/pomodoro-timer/utils/pomodoro";
 
 const STATUS_TEXT = {
   READY: "Ready",

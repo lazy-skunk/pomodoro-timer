@@ -6,11 +6,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   LOW_ALARM_THRESHOLD_SECONDS,
   WORK_DURATION_SECONDS,
-} from "../constants";
+} from "@/features/pomodoro-timer/constants";
 import {
   POMODORO_TIMER_STATUS,
   type PomodoroTimerSchedulerState,
-} from "../schedulers/PomodoroTimerScheduler";
+} from "@/features/pomodoro-timer/services/schedulers/PomodoroTimerScheduler";
 
 type SchedulerOptions = {
   clock: {
@@ -64,22 +64,28 @@ const testDoubles = vi.hoisted(() => {
   };
 });
 
-vi.mock("../schedulers/PomodoroTimerScheduler", async () => {
-  const actual = await vi.importActual<
-    typeof import("../schedulers/PomodoroTimerScheduler")
-  >("../schedulers/PomodoroTimerScheduler");
+vi.mock(
+  "@/features/pomodoro-timer/services/schedulers/PomodoroTimerScheduler",
+  async () => {
+    const actual = await vi.importActual<
+      typeof import("@/features/pomodoro-timer/services/schedulers/PomodoroTimerScheduler")
+    >("@/features/pomodoro-timer/services/schedulers/PomodoroTimerScheduler");
 
-  return {
-    ...actual,
-    PomodoroTimerScheduler: testDoubles.MockScheduler,
-  };
-});
+    return {
+      ...actual,
+      PomodoroTimerScheduler: testDoubles.MockScheduler,
+    };
+  },
+);
 
-vi.mock("../audio/PomodoroTimerAudioEngine", () => ({
-  PomodoroTimerAudioEngine: testDoubles.MockAudioEngine,
-}));
+vi.mock(
+  "@/features/pomodoro-timer/services/audio/PomodoroTimerAudioEngine",
+  () => ({
+    PomodoroTimerAudioEngine: testDoubles.MockAudioEngine,
+  }),
+);
 
-import { usePomodoroTimer } from "./usePomodoroTimer";
+import { usePomodoroTimer } from "@/features/pomodoro-timer/hooks/usePomodoroTimer";
 
 type HookResult = ReturnType<typeof usePomodoroTimer>;
 

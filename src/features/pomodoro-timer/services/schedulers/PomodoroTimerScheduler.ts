@@ -3,7 +3,7 @@ import {
   MAX_CYCLE_COUNT,
   SHORT_BREAK_DURATION_SECONDS,
   WORK_DURATION_SECONDS,
-} from "../constants";
+} from "@/features/pomodoro-timer/constants";
 
 export const POMODORO_TIMER_STATUS = {
   IDLE: "idle",
