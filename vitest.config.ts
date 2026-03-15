@@ -1,5 +1,5 @@
 import path from "node:path";
-import { defineConfig } from "vitest/config";
+import { defineConfig } from "vite-plus";
 
 export default defineConfig({
   resolve: {
@@ -8,6 +8,7 @@ export default defineConfig({
     },
   },
   test: {
+    globals: true,
     coverage: {
       provider: "v8",
       reporter: ["text", "html", "lcov"],
