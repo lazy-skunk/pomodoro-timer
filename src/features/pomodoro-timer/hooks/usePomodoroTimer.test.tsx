@@ -1,8 +1,5 @@
 // @vitest-environment jsdom
 
-import React, { act } from "react";
-import { createRoot, type Root } from "react-dom/client";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   LOW_ALARM_THRESHOLD_SECONDS,
   WORK_DURATION_SECONDS,
@@ -11,6 +8,8 @@ import {
   POMODORO_TIMER_STATUS,
   type PomodoroTimerSchedulerState,
 } from "@/features/pomodoro-timer/services/schedulers/PomodoroTimerScheduler";
+import React, { act } from "react";
+import { createRoot, type Root } from "react-dom/client";
 
 type SchedulerOptions = {
   clock: {

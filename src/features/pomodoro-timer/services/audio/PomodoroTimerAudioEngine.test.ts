@@ -1,6 +1,5 @@
 // @vitest-environment jsdom
 
-import { beforeEach, describe, expect, it, vi } from "vitest";
 import { PomodoroTimerAudioEngine } from "@/features/pomodoro-timer/services/audio/PomodoroTimerAudioEngine";
 
 class FakeAudioParam {
