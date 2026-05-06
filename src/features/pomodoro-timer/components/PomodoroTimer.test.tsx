@@ -1,18 +1,15 @@
-// @vitest-environment jsdom
-
+import { POMODORO_TIMER_STATUS } from "@/features/pomodoro-timer/services/schedulers/PomodoroTimerScheduler";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { POMODORO_TIMER_STATUS } from "@/features/pomodoro-timer/services/schedulers/PomodoroTimerScheduler";
 
-const startTimer = vi.fn(async () => true);
-const pauseTimer = vi.fn();
-const resumeTimer = vi.fn(async () => true);
-const resetTimer = vi.fn();
+const startTimer = jest.fn(async () => true);
+const pauseTimer = jest.fn();
+const resumeTimer = jest.fn(async () => true);
+const resetTimer = jest.fn();
 
-const usePomodoroTimerMock = vi.fn();
+const usePomodoroTimerMock = jest.fn();
 
-vi.mock("@/features/pomodoro-timer/hooks/usePomodoroTimer", () => ({
+jest.mock("@/features/pomodoro-timer/hooks/usePomodoroTimer", () => ({
   usePomodoroTimer: (...args: unknown[]) => usePomodoroTimerMock(...args),
 }));
 

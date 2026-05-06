@@ -1,6 +1,3 @@
-// @vitest-environment jsdom
-
-import { beforeEach, describe, expect, it, vi } from "vitest";
 import { PomodoroTimerAudioEngine } from "@/features/pomodoro-timer/services/audio/PomodoroTimerAudioEngine";
 
 class FakeAudioParam {
@@ -19,17 +16,17 @@ class FakeAudioParam {
 
 class FakeGainNode {
   public readonly gain = new FakeAudioParam();
-  public readonly connect = vi.fn();
-  public readonly disconnect = vi.fn();
+  public readonly connect = jest.fn();
+  public readonly disconnect = jest.fn();
 }
 
 class FakeOscillatorNode {
   public readonly frequency = new FakeAudioParam();
-  public readonly connect = vi.fn();
-  public readonly disconnect = vi.fn();
-  public readonly start = vi.fn();
+  public readonly connect = jest.fn();
+  public readonly disconnect = jest.fn();
+  public readonly start = jest.fn();
   public readonly stopCalls: Array<number | undefined> = [];
-  public readonly stop = vi.fn((time?: number) => {
+  public readonly stop = jest.fn((time?: number) => {
     this.stopCalls.push(time);
   });
   public type = "";
@@ -42,10 +39,10 @@ class FakeAudioContext {
   public readonly destination = {};
   public readonly oscillators: FakeOscillatorNode[] = [];
   public readonly gainNodes: FakeGainNode[] = [];
-  public readonly resume = vi.fn(async () => {
+  public readonly resume = jest.fn(async () => {
     this.state = "running";
   });
-  public readonly close = vi.fn(async () => {
+  public readonly close = jest.fn(async () => {
     this.state = "closed";
   });
 
@@ -64,12 +61,12 @@ class FakeAudioContext {
 
 describe("PomodoroTimerAudioEngine", () => {
   beforeEach(() => {
-    vi.restoreAllMocks();
+    jest.restoreAllMocks();
   });
 
   it("creates and resumes an audio context during prepare", async () => {
     const fakeAudioContext = new FakeAudioContext();
-    const AudioContextMock = vi.fn(function AudioContextMock() {
+    const AudioContextMock = jest.fn(function AudioContextMock() {
       return fakeAudioContext;
     });
     Object.defineProperty(window, "AudioContext", {
@@ -89,7 +86,7 @@ describe("PomodoroTimerAudioEngine", () => {
   it("schedules an alarm tone when the context is running", async () => {
     const fakeAudioContext = new FakeAudioContext();
     fakeAudioContext.state = "running";
-    const AudioContextMock = vi.fn(function AudioContextMock() {
+    const AudioContextMock = jest.fn(function AudioContextMock() {
       return fakeAudioContext;
     });
     Object.defineProperty(window, "AudioContext", {
@@ -114,7 +111,7 @@ describe("PomodoroTimerAudioEngine", () => {
   it("stops all scheduled oscillators at the current audio time", async () => {
     const fakeAudioContext = new FakeAudioContext();
     fakeAudioContext.state = "running";
-    const AudioContextMock = vi.fn(function AudioContextMock() {
+    const AudioContextMock = jest.fn(function AudioContextMock() {
       return fakeAudioContext;
     });
     Object.defineProperty(window, "AudioContext", {
@@ -140,7 +137,7 @@ describe("PomodoroTimerAudioEngine", () => {
   it("closes the audio context on dispose", async () => {
     const fakeAudioContext = new FakeAudioContext();
     fakeAudioContext.state = "running";
-    const AudioContextMock = vi.fn(function AudioContextMock() {
+    const AudioContextMock = jest.fn(function AudioContextMock() {
       return fakeAudioContext;
     });
     Object.defineProperty(window, "AudioContext", {

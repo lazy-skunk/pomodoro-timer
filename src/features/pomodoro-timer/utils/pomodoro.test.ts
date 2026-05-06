@@ -1,4 +1,3 @@
-import { describe, expect, it } from "vitest";
 import { WORK_DURATION_SECONDS } from "@/features/pomodoro-timer/constants";
 import { POMODORO_TIMER_STATUS } from "@/features/pomodoro-timer/services/schedulers/PomodoroTimerScheduler";
 import {

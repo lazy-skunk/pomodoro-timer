@@ -1,8 +1,3 @@
-// @vitest-environment jsdom
-
-import React, { act } from "react";
-import { createRoot, type Root } from "react-dom/client";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   LOW_ALARM_THRESHOLD_SECONDS,
   WORK_DURATION_SECONDS,
@@ -11,6 +6,8 @@ import {
   POMODORO_TIMER_STATUS,
   type PomodoroTimerSchedulerState,
 } from "@/features/pomodoro-timer/services/schedulers/PomodoroTimerScheduler";
+import React, { act } from "react";
+import { createRoot, type Root } from "react-dom/client";
 
 type SchedulerOptions = {
   clock: {
@@ -26,62 +23,67 @@ type SchedulerOptions = {
   ) => void;
 };
 
-const testDoubles = vi.hoisted(() => {
-  const schedulerInstances: MockScheduler[] = [];
-  const audioEngineInstances: MockAudioEngine[] = [];
-  const sharedAudioContext = { currentTime: 100 };
+type MockScheduler = {
+  options: SchedulerOptions;
+  start: jest.Mock;
+  pause: jest.Mock;
+  resume: jest.Mock;
+  reset: jest.Mock;
+  dispose: jest.Mock;
+};
 
-  class MockScheduler {
-    public readonly start = vi.fn(async () => true);
-    public readonly pause = vi.fn();
-    public readonly resume = vi.fn(async () => true);
-    public readonly reset = vi.fn();
-    public readonly dispose = vi.fn();
+type MockAudioEngine = {
+  prepare: jest.Mock;
+  getAudioContext: jest.Mock;
+  stop: jest.Mock;
+  dispose: jest.Mock;
+  scheduleAlarm: jest.Mock;
+  scheduleLowAlarm: jest.Mock;
+};
 
-    public constructor(public readonly options: SchedulerOptions) {
-      schedulerInstances.push(this);
-    }
-  }
+const mockSchedulerInstances: MockScheduler[] = [];
+const mockAudioEngineInstances: MockAudioEngine[] = [];
+const mockSharedAudioContext = { currentTime: 100 };
 
-  class MockAudioEngine {
-    public readonly prepare = vi.fn(async () => sharedAudioContext);
-    public readonly getAudioContext = vi.fn(() => sharedAudioContext);
-    public readonly stop = vi.fn();
-    public readonly dispose = vi.fn(async () => {});
-    public readonly scheduleAlarm = vi.fn();
-    public readonly scheduleLowAlarm = vi.fn();
-
-    public constructor() {
-      audioEngineInstances.push(this);
-    }
-  }
-
-  return {
-    schedulerInstances,
-    audioEngineInstances,
-    MockScheduler,
-    MockAudioEngine,
-  };
-});
-
-vi.mock(
+jest.mock(
   "@/features/pomodoro-timer/services/schedulers/PomodoroTimerScheduler",
-  async () => {
-    const actual = await vi.importActual<
-      typeof import("@/features/pomodoro-timer/services/schedulers/PomodoroTimerScheduler")
-    >("@/features/pomodoro-timer/services/schedulers/PomodoroTimerScheduler");
+  () => {
+    const actual = jest.requireActual(
+      "@/features/pomodoro-timer/services/schedulers/PomodoroTimerScheduler",
+    ) as typeof import("@/features/pomodoro-timer/services/schedulers/PomodoroTimerScheduler");
 
     return {
       ...actual,
-      PomodoroTimerScheduler: testDoubles.MockScheduler,
+      PomodoroTimerScheduler: class implements MockScheduler {
+        public readonly start = jest.fn(async () => true);
+        public readonly pause = jest.fn();
+        public readonly resume = jest.fn(async () => true);
+        public readonly reset = jest.fn();
+        public readonly dispose = jest.fn();
+
+        public constructor(public readonly options: SchedulerOptions) {
+          mockSchedulerInstances.push(this);
+        }
+      },
     };
   },
 );
 
-vi.mock(
+jest.mock(
   "@/features/pomodoro-timer/services/audio/PomodoroTimerAudioEngine",
   () => ({
-    PomodoroTimerAudioEngine: testDoubles.MockAudioEngine,
+    PomodoroTimerAudioEngine: class implements MockAudioEngine {
+      public readonly prepare = jest.fn(async () => mockSharedAudioContext);
+      public readonly getAudioContext = jest.fn(() => mockSharedAudioContext);
+      public readonly stop = jest.fn();
+      public readonly dispose = jest.fn(async () => {});
+      public readonly scheduleAlarm = jest.fn();
+      public readonly scheduleLowAlarm = jest.fn();
+
+      public constructor() {
+        mockAudioEngineInstances.push(this);
+      }
+    },
   }),
 );
 
@@ -107,8 +109,8 @@ describe("usePomodoroTimer", () => {
     container = document.createElement("div");
     document.body.appendChild(container);
     root = createRoot(container);
-    testDoubles.schedulerInstances.length = 0;
-    testDoubles.audioEngineInstances.length = 0;
+    mockSchedulerInstances.length = 0;
+    mockAudioEngineInstances.length = 0;
   });
 
   afterEach(async () => {
@@ -116,7 +118,7 @@ describe("usePomodoroTimer", () => {
       root.unmount();
     });
     container.remove();
-    vi.clearAllMocks();
+    jest.clearAllMocks();
   });
 
   const renderHookHarness = async (basePomodoroColor = "rgb(64, 128, 0)") => {
@@ -153,8 +155,8 @@ describe("usePomodoroTimer", () => {
 
   it("delegates start, pause, resume, and reset actions", async () => {
     await renderHookHarness();
-    const scheduler = testDoubles.schedulerInstances[0];
-    const audioEngine = testDoubles.audioEngineInstances[0];
+    const scheduler = mockSchedulerInstances[0];
+    const audioEngine = mockAudioEngineInstances[0];
 
     await act(async () => {
       await hookResult.startTimer();
@@ -174,7 +176,7 @@ describe("usePomodoroTimer", () => {
 
   it("updates derived UI state and pomodoros from scheduler state changes", async () => {
     await renderHookHarness();
-    const scheduler = testDoubles.schedulerInstances[0];
+    const scheduler = mockSchedulerInstances[0];
 
     act(() => {
       scheduler.options.onStateChanged?.({
@@ -192,8 +194,8 @@ describe("usePomodoroTimer", () => {
 
   it("schedules low alarms and a final alarm for each phase start", async () => {
     await renderHookHarness();
-    const scheduler = testDoubles.schedulerInstances[0];
-    const audioEngine = testDoubles.audioEngineInstances[0];
+    const scheduler = mockSchedulerInstances[0];
+    const audioEngine = mockAudioEngineInstances[0];
 
     act(() => {
       scheduler.options.onPhaseStarted?.(
@@ -213,9 +215,10 @@ describe("usePomodoroTimer", () => {
   });
 
   it("shows an error when the active clock becomes unavailable", async () => {
+    const warnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
     await renderHookHarness();
-    const scheduler = testDoubles.schedulerInstances[0];
-    const audioEngine = testDoubles.audioEngineInstances[0];
+    const scheduler = mockSchedulerInstances[0];
+    const audioEngine = mockAudioEngineInstances[0];
 
     act(() => {
       scheduler.options.onClockUnavailable?.();
@@ -225,5 +228,9 @@ describe("usePomodoroTimer", () => {
     expect(hookResult.errorMessage).toBe(
       "The timer stopped unexpectedly. Please start again.",
     );
+    expect(warnSpy).toHaveBeenCalledWith(
+      "usePomodoroTimer: active clock became unavailable, timer stopped.",
+    );
+    warnSpy.mockRestore();
   });
 });

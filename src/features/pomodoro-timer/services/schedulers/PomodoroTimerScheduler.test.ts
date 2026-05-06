@@ -1,4 +1,3 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   LONG_BREAK_DURATION_SECONDS,
   SHORT_BREAK_DURATION_SECONDS,
@@ -62,11 +61,11 @@ const createSchedulerHarness = () => {
 
 describe("PomodoroTimerScheduler", () => {
   beforeEach(() => {
-    vi.useFakeTimers();
+    jest.useFakeTimers();
   });
 
   afterEach(() => {
-    vi.useRealTimers();
+    jest.useRealTimers();
   });
 
   it("starts in work phase and notifies phase start once", async () => {
@@ -99,7 +98,7 @@ describe("PomodoroTimerScheduler", () => {
     await harness.scheduler.start();
 
     harness.setCurrentTimeSeconds(WORK_DURATION_SECONDS);
-    await vi.advanceTimersByTimeAsync(1000);
+    await jest.advanceTimersByTimeAsync(1000);
 
     expect(harness.scheduler.getState()).toEqual({
       remainingSeconds: SHORT_BREAK_DURATION_SECONDS,
@@ -117,7 +116,7 @@ describe("PomodoroTimerScheduler", () => {
     for (let cycleCount = 1; cycleCount <= 4; cycleCount += 1) {
       elapsedSeconds += WORK_DURATION_SECONDS;
       harness.setCurrentTimeSeconds(elapsedSeconds);
-      await vi.advanceTimersByTimeAsync(1000);
+      await jest.advanceTimersByTimeAsync(1000);
 
       if (cycleCount < 4) {
         expect(harness.scheduler.getState().phase).toBe(
@@ -135,7 +134,7 @@ describe("PomodoroTimerScheduler", () => {
         break;
       }
 
-      await vi.advanceTimersByTimeAsync(1000);
+      await jest.advanceTimersByTimeAsync(1000);
       expect(harness.scheduler.getState().phase).toBe(
         POMODORO_TIMER_STATUS.WORK,
       );
