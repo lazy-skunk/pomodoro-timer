@@ -1,5 +1,3 @@
-# Frequently Used Commands
-
 ## npm scripts
 
 ```bash
@@ -15,7 +13,6 @@ npm run format:check
 
 # Test
 npm test
-npm run test:coverage
 ```
 
 ## Docker

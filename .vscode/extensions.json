@@ -1,8 +1,7 @@
 {
   "recommendations": [
-    "dbaeumer.vscode-eslint",
     "esbenp.prettier-vscode",
-    "vitest.explorer",
-    "openai.chatgpt"
+    "dbaeumer.vscode-eslint",
+    "github.vscode-github-actions"
   ]
 }
