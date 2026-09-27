@@ -1,4 +1,4 @@
-name: Test
+name: Vite+ Test
 
 on:
   push:
@@ -11,7 +11,11 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: ./.github/actions/setup-node-env
+      # https://github.com/voidzero-dev/setup-vp
+      - uses: voidzero-dev/setup-vp@v1.21.1
+        with:
+          cache: true
+          run-install: |
+            - args: ["--frozen-lockfile"]
 
-      - name: Run tests
-        run: npm test
+      - run: vp test

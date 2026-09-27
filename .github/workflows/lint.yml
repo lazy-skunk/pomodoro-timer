@@ -1,20 +1,21 @@
-name: Lint
+name: Vite+ Check
 
 on:
   push:
   workflow_dispatch:
 
 jobs:
-  lint:
+  check:
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v7
 
-      - uses: ./.github/actions/setup-node-env
+      # https://github.com/voidzero-dev/setup-vp
+      - uses: voidzero-dev/setup-vp@v1.21.1
+        with:
+          cache: true
+          run-install: |
+            - args: ["--frozen-lockfile"]
 
-      - name: Run Prettier check
-        run: npm run format:check
-
-      - name: Run ESLint
-        run: npm run lint
+      - run: vp check

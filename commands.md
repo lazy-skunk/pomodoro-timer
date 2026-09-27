@@ -1,25 +1,19 @@
-## npm scripts
-
-```bash
-# App
-npm run dev
-npm run build
-npm run start
-
-# Quality
-npm run lint
-npm run format
-npm run format:check
-
-# Test
-npm test
-```
-
-## Docker
+## Docker Compose
 
 ```bash
 docker-compose build --no-cache
-docker-compose up --build -d
+docker-compose up -d
 docker-compose stop
 docker-compose down --rmi all --volumes
+```
+
+## Pre-commit
+
+```bash
+npx vp hooks status
+
+git config --unset core.hooksPath
+npx vp hooks enable
+
+npx vp hooks status
 ```

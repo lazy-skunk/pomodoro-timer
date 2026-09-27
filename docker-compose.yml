@@ -3,15 +3,11 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    volumes:
-      - ./:/app
-      - /app/node_modules
-      - /app/.next
-      - ~/.gitconfig:/root/.gitconfig:ro
+    command: ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
     ports:
-      - "3000:3000"
-    environment:
-      - WATCHPACK_POLLING=true
-    command: npm run dev -- --hostname 0.0.0.0
+      - "${VITE_PORT:-5173}:5173"
+    volumes:
+      - .:/app
+      - /app/node_modules
     stdin_open: true
     tty: true

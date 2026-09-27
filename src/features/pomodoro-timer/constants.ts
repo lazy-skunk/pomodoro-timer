@@ -1,5 +1,0 @@
-export const WORK_DURATION_SECONDS = 60 * 25;
-export const SHORT_BREAK_DURATION_SECONDS = 60 * 5;
-export const LONG_BREAK_DURATION_SECONDS = 60 * 15;
-export const MAX_CYCLE_COUNT = 4;
-export const LOW_ALARM_THRESHOLD_SECONDS = 3;
