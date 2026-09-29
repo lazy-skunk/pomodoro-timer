@@ -5,6 +5,11 @@ import { defineConfig } from "vite-plus";
 export default defineConfig({
   base: process.env.GITHUB_PAGES === "true" ? "/pomodoro-timer/" : "/",
   plugins: [react(), tailwindcss()],
+  server: {
+    watch: {
+      usePolling: true,
+    },
+  },
   staged: {
     "*": "vp check --fix",
   },
