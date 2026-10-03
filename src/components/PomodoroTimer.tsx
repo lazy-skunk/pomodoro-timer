@@ -31,10 +31,10 @@ export default function PomodoroTimer() {
   } = usePomodoroTimer({ basePomodoroColor });
 
   const baseButtonClass =
-    "inline-flex min-w-32 items-center justify-center rounded-full px-6 py-3 text-lg font-semibold text-white shadow-sm transition-transform active:scale-95";
-  const startButtonClass = `${baseButtonClass} bg-emerald-600 hover:bg-emerald-500`;
-  const pauseButtonClass = `${baseButtonClass} bg-amber-600 hover:bg-amber-500`;
-  const resetButtonClass = `${baseButtonClass} bg-rose-600 hover:bg-rose-500`;
+    "inline-flex min-w-32 items-center justify-center rounded-full px-6 py-3 text-xl font-bold shadow-sm transition-transform active:scale-95";
+  const startButtonClass = `${baseButtonClass} bg-emerald-600 text-zinc-900 hover:bg-emerald-500`;
+  const pauseButtonClass = `${baseButtonClass} bg-amber-600 text-zinc-900 hover:bg-amber-500`;
+  const resetButtonClass = `${baseButtonClass} bg-rose-600 text-zinc-900 hover:bg-rose-500`;
   const statusText = resolveStatusText(timerState.phase, timerState.isPaused);
 
   return (
