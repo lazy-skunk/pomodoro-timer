@@ -1,17 +1,3 @@
 # Pomodoro Timer
 
-ポモドーロ・テクニックで作業時間と休憩時間を管理する Web アプリです。
-
-25分の作業、短い休憩、長い休憩を順番に進めながら、完了したポモドーロを画面上に記録できます。
-
-## 使う
-
-公開版は次のURLから使えます。
-
-<https://lazy-skunk.github.io/pomodoro-timer/>
-
-## 使い方
-
-- 集中する時間と休憩する時間を交互に進めます。
-- 作業の区切りごとに、完了したポモドーロを記録します。
-- 必要に応じてタイマーを一時停止したり、セッションを最初からやり直したりできます。
+A Pomodoro timer for managing focus sessions, breaks, and completed pomodoros.
