@@ -1,7 +1,7 @@
 {
   "recommendations": [
     "github.vscode-github-actions",
-    "mermaidchart.vscode-mermaid-chart",
+    "openai.chatgpt",
     "voidzero.vite-plus-extension-pack"
   ]
 }
