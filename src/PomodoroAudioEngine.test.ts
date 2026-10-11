@@ -1,6 +1,6 @@
 /* @vitest-environment jsdom */
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
-import { PomodoroTimerAudioEngine } from "./audioEngine";
+import { PomodoroTimerAudioEngine } from "./PomodoroAudioEngine";
 
 class FakeAudioParam {
   public readonly setValueAtTimeCalls: Array<[number, number]> = [];
@@ -26,10 +26,7 @@ class FakeOscillatorNode {
   public readonly connect = vi.fn();
   public readonly disconnect = vi.fn();
   public readonly start = vi.fn();
-  public readonly stopCalls: Array<number | undefined> = [];
-  public readonly stop = vi.fn((time?: number) => {
-    this.stopCalls.push(time);
-  });
+  public readonly stop = vi.fn();
   public type = "";
   public onended: (() => void) | null = null;
 }
@@ -60,47 +57,46 @@ class FakeAudioContext {
   }
 }
 
+const installFakeAudioContext = (state: FakeAudioContext["state"] = "suspended") => {
+  const audioContext = new FakeAudioContext();
+  audioContext.state = state;
+  const AudioContextMock = vi.fn(function AudioContextMock() {
+    return audioContext;
+  });
+  Object.defineProperty(window, "AudioContext", {
+    configurable: true,
+    value: AudioContextMock,
+  });
+
+  return { audioContext, AudioContextMock };
+};
+
 describe("PomodoroTimerAudioEngine", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
   });
 
   it("creates and resumes an audio context during prepare", async () => {
-    const fakeAudioContext = new FakeAudioContext();
-    const AudioContextMock = vi.fn(function AudioContextMock() {
-      return fakeAudioContext;
-    });
-    Object.defineProperty(window, "AudioContext", {
-      configurable: true,
-      value: AudioContextMock,
-    });
+    const { audioContext, AudioContextMock } = installFakeAudioContext();
 
     const engine = new PomodoroTimerAudioEngine();
     const preparedContext = await engine.prepare();
 
     expect(AudioContextMock).toHaveBeenCalledTimes(1);
-    expect(fakeAudioContext.resume).toHaveBeenCalledTimes(1);
-    expect(preparedContext).toBe(fakeAudioContext);
-    expect(engine.getAudioContext()).toBe(fakeAudioContext);
+    expect(audioContext.resume).toHaveBeenCalledTimes(1);
+    expect(preparedContext).toBe(audioContext);
+    expect(engine.getAudioContext()).toBe(audioContext);
   });
 
   it("schedules an alarm tone when the context is running", async () => {
-    const fakeAudioContext = new FakeAudioContext();
-    fakeAudioContext.state = "running";
-    const AudioContextMock = vi.fn(function AudioContextMock() {
-      return fakeAudioContext;
-    });
-    Object.defineProperty(window, "AudioContext", {
-      configurable: true,
-      value: AudioContextMock,
-    });
+    const { audioContext } = installFakeAudioContext("running");
 
     const engine = new PomodoroTimerAudioEngine();
     await engine.prepare();
     engine.scheduleAlarm(10);
 
-    const oscillator = fakeAudioContext.oscillators[0];
-    const gainNode = fakeAudioContext.gainNodes[0];
+    const oscillator = audioContext.oscillators[0];
+    const gainNode = audioContext.gainNodes[0];
 
     expect(oscillator.type).toBe("triangle");
     expect(oscillator.frequency.setValueAtTimeCalls[0]).toEqual([880, 10]);
@@ -110,15 +106,7 @@ describe("PomodoroTimerAudioEngine", () => {
   });
 
   it("stops all scheduled oscillators at the current audio time", async () => {
-    const fakeAudioContext = new FakeAudioContext();
-    fakeAudioContext.state = "running";
-    const AudioContextMock = vi.fn(function AudioContextMock() {
-      return fakeAudioContext;
-    });
-    Object.defineProperty(window, "AudioContext", {
-      configurable: true,
-      value: AudioContextMock,
-    });
+    const { audioContext } = installFakeAudioContext("running");
 
     const engine = new PomodoroTimerAudioEngine();
     await engine.prepare();
@@ -127,28 +115,20 @@ describe("PomodoroTimerAudioEngine", () => {
 
     engine.stop();
 
-    expect(fakeAudioContext.oscillators).toHaveLength(2);
-    for (const oscillator of fakeAudioContext.oscillators) {
-      expect(oscillator.stop).toHaveBeenLastCalledWith(fakeAudioContext.currentTime);
+    expect(audioContext.oscillators).toHaveLength(2);
+    for (const oscillator of audioContext.oscillators) {
+      expect(oscillator.stop).toHaveBeenLastCalledWith(audioContext.currentTime);
     }
   });
 
   it("closes the audio context on dispose", async () => {
-    const fakeAudioContext = new FakeAudioContext();
-    fakeAudioContext.state = "running";
-    const AudioContextMock = vi.fn(function AudioContextMock() {
-      return fakeAudioContext;
-    });
-    Object.defineProperty(window, "AudioContext", {
-      configurable: true,
-      value: AudioContextMock,
-    });
+    const { audioContext } = installFakeAudioContext("running");
 
     const engine = new PomodoroTimerAudioEngine();
     await engine.prepare();
     await engine.dispose();
 
-    expect(fakeAudioContext.close).toHaveBeenCalledTimes(1);
+    expect(audioContext.close).toHaveBeenCalledTimes(1);
     expect(engine.getAudioContext()).toBeNull();
   });
 });

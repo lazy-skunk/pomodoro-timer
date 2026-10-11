@@ -14,13 +14,13 @@ export const POMODORO_TIMER_STATUS = {
 export type PomodoroTimerPhase = (typeof POMODORO_TIMER_STATUS)[keyof typeof POMODORO_TIMER_STATUS];
 
 export type PomodoroTimerSchedulerState = {
-  remainingSeconds: number;
-  cycleCount: number;
-  phase: PomodoroTimerPhase;
-  isPaused: boolean;
+  readonly remainingSeconds: number;
+  readonly cycleCount: number;
+  readonly phase: PomodoroTimerPhase;
+  readonly isPaused: boolean;
 };
 
-export type PomodoroTimerSchedulerClock = {
+type PomodoroTimerSchedulerClock = {
   prepare: () => Promise<number>;
   getCurrentTimeSeconds: () => number | null;
 };
@@ -29,11 +29,7 @@ type PomodoroTimerSchedulerOptions = {
   clock: PomodoroTimerSchedulerClock;
   onStateChanged?: (state: PomodoroTimerSchedulerState) => void;
   onClockUnavailable?: () => void;
-  onPhaseStarted?: (
-    state: PomodoroTimerSchedulerState,
-    phaseStartTimeSeconds: number,
-    durationSeconds: number,
-  ) => void;
+  onPhaseStarted?: (phaseStartTimeSeconds: number, durationSeconds: number) => void;
 };
 
 const TICK_INTERVAL_MILLISECONDS = 1000;
@@ -47,7 +43,6 @@ export class PomodoroTimerScheduler {
   private readonly onStateChanged?: (state: PomodoroTimerSchedulerState) => void;
   private readonly onClockUnavailable?: () => void;
   private readonly onPhaseStarted?: (
-    state: PomodoroTimerSchedulerState,
     phaseStartTimeSeconds: number,
     durationSeconds: number,
   ) => void;
@@ -59,19 +54,13 @@ export class PomodoroTimerScheduler {
     isPaused: false,
   };
   private endTimeSeconds: number | null = null;
-  private pausedRemainingDurationSeconds = WORK_DURATION_SECONDS;
-  private pausedPhase: Exclude<PomodoroTimerPhase, typeof POMODORO_TIMER_STATUS.IDLE> =
-    POMODORO_TIMER_STATUS.WORK;
+  private pausedRemainingDurationSeconds = 0;
 
   constructor(options: PomodoroTimerSchedulerOptions) {
     this.clock = options.clock;
     this.onStateChanged = options.onStateChanged;
     this.onClockUnavailable = options.onClockUnavailable;
     this.onPhaseStarted = options.onPhaseStarted;
-  }
-
-  public getIsRunning() {
-    return this.tickerIntervalId !== null;
   }
 
   public getState() {
@@ -103,7 +92,9 @@ export class PomodoroTimerScheduler {
       this.notifyStateChanged();
       return true;
     } finally {
-      this.isPreparingClock = false;
+      if (requestId === this.prepareRequestId) {
+        this.isPreparingClock = false;
+      }
     }
   }
 
@@ -112,7 +103,6 @@ export class PomodoroTimerScheduler {
       return;
     }
 
-    this.pausedPhase = this.state.phase;
     this.stopTicker();
     this.pausedRemainingDurationSeconds = this.resolveRemainingDurationSeconds();
     this.endTimeSeconds = null;
@@ -141,41 +131,38 @@ export class PomodoroTimerScheduler {
 
       this.state = {
         ...this.state,
-        phase: this.pausedPhase,
         isPaused: false,
       };
       this.startPhase(currentTimeSeconds, this.pausedRemainingDurationSeconds);
       this.notifyStateChanged();
       return true;
     } finally {
-      this.isPreparingClock = false;
+      if (requestId === this.prepareRequestId) {
+        this.isPreparingClock = false;
+      }
     }
   }
 
   public reset() {
-    this.stop({ notifyStateChanged: true });
+    this.resetState();
+    this.notifyStateChanged();
   }
 
-  public stop(options?: { notifyStateChanged?: boolean }) {
+  private resetState() {
     this.prepareRequestId += 1;
     this.isPreparingClock = false;
     this.stopTicker();
     this.endTimeSeconds = null;
-    this.pausedRemainingDurationSeconds = WORK_DURATION_SECONDS;
-    this.pausedPhase = POMODORO_TIMER_STATUS.WORK;
     this.state = {
       remainingSeconds: WORK_DURATION_SECONDS,
       cycleCount: 0,
       phase: POMODORO_TIMER_STATUS.IDLE,
       isPaused: false,
     };
-    if (options?.notifyStateChanged ?? true) {
-      this.notifyStateChanged();
-    }
   }
 
   public dispose() {
-    this.stop({ notifyStateChanged: false });
+    this.resetState();
   }
 
   private readonly tick = () => {
@@ -189,7 +176,8 @@ export class PomodoroTimerScheduler {
 
     const currentTimeSeconds = this.clock.getCurrentTimeSeconds();
     if (currentTimeSeconds === null) {
-      this.stop({ notifyStateChanged: true });
+      this.resetState();
+      this.notifyStateChanged();
       this.onClockUnavailable?.();
       return;
     }
@@ -248,13 +236,7 @@ export class PomodoroTimerScheduler {
 
   private startPhase(phaseStartTimeSeconds: number, durationSeconds: number) {
     this.endTimeSeconds = phaseStartTimeSeconds + durationSeconds;
-    this.pausedRemainingDurationSeconds = durationSeconds;
-    this.state = {
-      ...this.state,
-      remainingSeconds: Math.ceil(durationSeconds),
-      isPaused: false,
-    };
-    this.onPhaseStarted?.(this.state, phaseStartTimeSeconds, durationSeconds);
+    this.onPhaseStarted?.(phaseStartTimeSeconds, durationSeconds);
     this.startTicker();
   }
 

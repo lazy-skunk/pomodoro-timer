@@ -1,52 +1,38 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { PomodoroTimerAudioEngine } from "../lib/audioEngine";
+import { PomodoroTimerAudioEngine } from "./PomodoroAudioEngine";
 import {
   POMODORO_TIMER_STATUS,
   PomodoroTimerScheduler,
   WORK_DURATION_SECONDS,
   type PomodoroTimerSchedulerState,
-} from "../lib/scheduler";
-import { resolveNextPomodoros, type Pomodoro } from "../lib/pomodoro";
+} from "./PomodoroScheduler";
 
 const LOW_ALARM_THRESHOLD_SECONDS = 3;
-
-type UsePomodoroTimerOptions = {
-  basePomodoroColor: string;
-};
 
 type PreparedClock = {
   currentTimeSeconds: number;
   getCurrentTimeSeconds: () => number | null;
 };
 
-export const usePomodoroTimer = ({ basePomodoroColor }: UsePomodoroTimerOptions) => {
+const getPerformanceNowSeconds = () => performance.now() / 1000;
+
+const createPerformanceClock = (): PreparedClock => ({
+  currentTimeSeconds: getPerformanceNowSeconds(),
+  getCurrentTimeSeconds: getPerformanceNowSeconds,
+});
+
+export const usePomodoroTimer = () => {
   const [timerState, setTimerState] = useState<PomodoroTimerSchedulerState>({
     remainingSeconds: WORK_DURATION_SECONDS,
     cycleCount: 0,
     phase: POMODORO_TIMER_STATUS.IDLE,
     isPaused: false,
   });
-  const [pomodoros, setPomodoros] = useState<Pomodoro[]>([]);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const audioEngineRef = useRef<PomodoroTimerAudioEngine | null>(null);
   const schedulerRef = useRef<PomodoroTimerScheduler | null>(null);
-  const previousTimerStateRef = useRef(timerState);
-  const basePomodoroColorRef = useRef(basePomodoroColor);
   const activeClockRef = useRef<PreparedClock | null>(null);
-
-  useEffect(() => {
-    basePomodoroColorRef.current = basePomodoroColor;
-  }, [basePomodoroColor]);
-
-  const getPerformanceNowSeconds = useCallback(() => performance.now() / 1000, []);
-
-  const createPerformanceClock = useCallback((): PreparedClock => {
-    return {
-      currentTimeSeconds: getPerformanceNowSeconds(),
-      getCurrentTimeSeconds: getPerformanceNowSeconds,
-    };
-  }, [getPerformanceNowSeconds]);
 
   const prepareClock = useCallback(async () => {
     try {
@@ -78,7 +64,7 @@ export const usePomodoroTimer = ({ basePomodoroColor }: UsePomodoroTimerOptions)
     const performanceClock = createPerformanceClock();
     activeClockRef.current = performanceClock;
     return performanceClock.currentTimeSeconds;
-  }, [createPerformanceClock]);
+  }, []);
 
   const getCurrentTimeSeconds = useCallback(() => {
     return activeClockRef.current?.getCurrentTimeSeconds() ?? null;
@@ -100,28 +86,9 @@ export const usePomodoroTimer = ({ basePomodoroColor }: UsePomodoroTimerOptions)
         }
       },
       onStateChanged: (nextState) => {
-        const previousState = previousTimerStateRef.current;
-        previousTimerStateRef.current = nextState;
         setTimerState(nextState);
-        setPomodoros((previousPomodoros) => {
-          if (nextState.phase === POMODORO_TIMER_STATUS.IDLE) {
-            return [];
-          }
-
-          return resolveNextPomodoros(
-            previousPomodoros,
-            previousState,
-            nextState,
-            basePomodoroColorRef.current,
-            WORK_DURATION_SECONDS,
-          );
-        });
       },
-      onPhaseStarted: (
-        _state: PomodoroTimerSchedulerState,
-        phaseStartTimeSeconds: number,
-        durationSeconds: number,
-      ) => {
+      onPhaseStarted: (phaseStartTimeSeconds: number, durationSeconds: number) => {
         const alarmTimeSeconds = phaseStartTimeSeconds + durationSeconds;
         const lowAlarmCount = Math.min(LOW_ALARM_THRESHOLD_SECONDS, Math.floor(durationSeconds));
 
@@ -139,7 +106,11 @@ export const usePomodoroTimer = ({ basePomodoroColor }: UsePomodoroTimerOptions)
       scheduler.dispose();
       schedulerRef.current = null;
       activeClockRef.current = null;
-      void audioEngine.dispose();
+      void audioEngine.dispose().catch((error: unknown) => {
+        if (import.meta.env.DEV) {
+          console.warn("usePomodoroTimer: audio engine disposal failed.", error);
+        }
+      });
       audioEngineRef.current = null;
     };
   }, [getCurrentTimeSeconds, prepareClock]);
@@ -172,7 +143,6 @@ export const usePomodoroTimer = ({ basePomodoroColor }: UsePomodoroTimerOptions)
 
   return {
     timerState,
-    pomodoros,
     errorMessage,
     canStart: phase === POMODORO_TIMER_STATUS.IDLE,
     canPause: phase !== POMODORO_TIMER_STATUS.IDLE && !isPaused,

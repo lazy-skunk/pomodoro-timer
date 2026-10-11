@@ -1,14 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import {
   LONG_BREAK_DURATION_SECONDS,
-  SHORT_BREAK_DURATION_SECONDS,
-  WORK_DURATION_SECONDS,
-} from "./scheduler";
-import {
   POMODORO_TIMER_STATUS,
   PomodoroTimerScheduler,
-  type PomodoroTimerSchedulerState,
-} from "./scheduler";
+  SHORT_BREAK_DURATION_SECONDS,
+  WORK_DURATION_SECONDS,
+} from "./PomodoroScheduler";
 
 type Deferred<T> = {
   promise: Promise<T>;
@@ -26,9 +23,7 @@ const createDeferred = <T>() => {
 
 const createSchedulerHarness = () => {
   let currentTimeSeconds = 0;
-  const stateChanges: PomodoroTimerSchedulerState[] = [];
   const phaseStarts: Array<{
-    state: PomodoroTimerSchedulerState;
     phaseStartTimeSeconds: number;
     durationSeconds: number;
   }> = [];
@@ -38,12 +33,8 @@ const createSchedulerHarness = () => {
       prepare: async () => currentTimeSeconds,
       getCurrentTimeSeconds: () => currentTimeSeconds,
     },
-    onStateChanged: (state) => {
-      stateChanges.push({ ...state });
-    },
-    onPhaseStarted: (state, phaseStartTimeSeconds, durationSeconds) => {
+    onPhaseStarted: (phaseStartTimeSeconds, durationSeconds) => {
       phaseStarts.push({
-        state: { ...state },
         phaseStartTimeSeconds,
         durationSeconds,
       });
@@ -52,7 +43,6 @@ const createSchedulerHarness = () => {
 
   return {
     scheduler,
-    stateChanges,
     phaseStarts,
     setCurrentTimeSeconds: (nextCurrentTimeSeconds: number) => {
       currentTimeSeconds = nextCurrentTimeSeconds;
@@ -82,12 +72,6 @@ describe("PomodoroTimerScheduler", () => {
     });
     expect(harness.phaseStarts).toEqual([
       {
-        state: {
-          remainingSeconds: WORK_DURATION_SECONDS,
-          cycleCount: 0,
-          phase: POMODORO_TIMER_STATUS.WORK,
-          isPaused: false,
-        },
         phaseStartTimeSeconds: 0,
         durationSeconds: WORK_DURATION_SECONDS,
       },
@@ -134,6 +118,58 @@ describe("PomodoroTimerScheduler", () => {
     }
   });
 
+  it("resumes a paused phase with its remaining duration", async () => {
+    const harness = createSchedulerHarness();
+    await harness.scheduler.start();
+
+    harness.setCurrentTimeSeconds(30.25);
+    await vi.advanceTimersByTimeAsync(1000);
+    harness.scheduler.pause();
+
+    expect(harness.scheduler.getState()).toEqual({
+      remainingSeconds: 1470,
+      cycleCount: 0,
+      phase: POMODORO_TIMER_STATUS.WORK,
+      isPaused: true,
+    });
+
+    harness.setCurrentTimeSeconds(100);
+    await expect(harness.scheduler.resume()).resolves.toBe(true);
+    harness.setCurrentTimeSeconds(101.25);
+    await vi.advanceTimersByTimeAsync(1000);
+
+    expect(harness.scheduler.getState()).toEqual({
+      remainingSeconds: 1469,
+      cycleCount: 0,
+      phase: POMODORO_TIMER_STATUS.WORK,
+      isPaused: false,
+    });
+  });
+
+  it("stops and reports when the active clock becomes unavailable", async () => {
+    let currentTimeSeconds: number | null = 0;
+    const onClockUnavailable = vi.fn();
+    const scheduler = new PomodoroTimerScheduler({
+      clock: {
+        prepare: async () => 0,
+        getCurrentTimeSeconds: () => currentTimeSeconds,
+      },
+      onClockUnavailable,
+    });
+    await scheduler.start();
+
+    currentTimeSeconds = null;
+    await vi.advanceTimersByTimeAsync(1000);
+
+    expect(scheduler.getState()).toEqual({
+      remainingSeconds: WORK_DURATION_SECONDS,
+      cycleCount: 0,
+      phase: POMODORO_TIMER_STATUS.IDLE,
+      isPaused: false,
+    });
+    expect(onClockUnavailable).toHaveBeenCalledTimes(1);
+  });
+
   it("prevents duplicate starts while clock preparation is pending", async () => {
     const deferred = createDeferred<number>();
     const phaseStarts: number[] = [];
@@ -177,5 +213,34 @@ describe("PomodoroTimerScheduler", () => {
       phase: POMODORO_TIMER_STATUS.IDLE,
       isPaused: false,
     });
+  });
+
+  it("keeps a new clock preparation locked when an older request finishes", async () => {
+    const firstPreparation = createDeferred<number>();
+    const secondPreparation = createDeferred<number>();
+    let preparationCount = 0;
+    const scheduler = new PomodoroTimerScheduler({
+      clock: {
+        prepare: () => {
+          preparationCount += 1;
+          return preparationCount === 1 ? firstPreparation.promise : secondPreparation.promise;
+        },
+        getCurrentTimeSeconds: () => 0,
+      },
+    });
+
+    const firstStartPromise = scheduler.start();
+    scheduler.reset();
+    const secondStartPromise = scheduler.start();
+
+    firstPreparation.resolve(0);
+    await expect(firstStartPromise).resolves.toBe(false);
+
+    const duplicateStartPromise = scheduler.start();
+    expect(preparationCount).toBe(2);
+
+    secondPreparation.resolve(100);
+    await expect(secondStartPromise).resolves.toBe(true);
+    await expect(duplicateStartPromise).resolves.toBe(false);
   });
 });

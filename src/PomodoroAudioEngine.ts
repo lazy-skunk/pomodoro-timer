@@ -3,8 +3,6 @@ const LOW_ALARM_FREQUENCY_HZ = 440;
 const NOTIFICATION_ATTACK_GAIN = 0.5;
 const SILENT_GAIN = 0.0001;
 const ENVELOPE_EDGE_SECONDS = 0.001;
-const ALARM_SUSTAIN_RATIO = 0.9;
-const LOW_ALARM_SUSTAIN_RATIO = 0.5;
 const ALARM_DURATION_SECONDS = 1.0;
 const LOW_ALARM_DURATION_SECONDS = 0.5;
 const STOP_BUFFER_SECONDS = 0.01;
@@ -27,9 +25,10 @@ export class PomodoroTimerAudioEngine {
 
   public async dispose() {
     this.stop();
-    if (this.audioContext) {
-      await this.audioContext.close();
-      this.audioContext = null;
+    const audioContext = this.audioContext;
+    this.audioContext = null;
+    if (audioContext) {
+      await audioContext.close();
     }
   }
 
@@ -59,41 +58,20 @@ export class PomodoroTimerAudioEngine {
   }
 
   public scheduleAlarm(playbackTimeSeconds: number) {
-    this.scheduleTone(
-      playbackTimeSeconds,
-      ALARM_FREQUENCY_HZ,
-      NOTIFICATION_ATTACK_GAIN,
-      ALARM_DURATION_SECONDS * ALARM_SUSTAIN_RATIO,
-      ALARM_DURATION_SECONDS,
-    );
+    this.scheduleTone(playbackTimeSeconds, ALARM_FREQUENCY_HZ, ALARM_DURATION_SECONDS);
   }
 
   public scheduleLowAlarm(playbackTimeSeconds: number) {
-    this.scheduleTone(
-      playbackTimeSeconds,
-      LOW_ALARM_FREQUENCY_HZ,
-      NOTIFICATION_ATTACK_GAIN,
-      LOW_ALARM_DURATION_SECONDS * LOW_ALARM_SUSTAIN_RATIO,
-      LOW_ALARM_DURATION_SECONDS,
-    );
+    this.scheduleTone(playbackTimeSeconds, LOW_ALARM_FREQUENCY_HZ, LOW_ALARM_DURATION_SECONDS);
   }
 
-  private scheduleTone(
-    playbackTimeSeconds: number,
-    frequencyHz: number,
-    attackGain: number,
-    sustainSeconds: number,
-    durationSeconds: number,
-  ) {
+  private scheduleTone(playbackTimeSeconds: number, frequencyHz: number, durationSeconds: number) {
     if (!this.audioContext || this.audioContext.state !== "running") {
       return;
     }
 
-    const sustainEndTimeSeconds = Math.max(
-      playbackTimeSeconds + ENVELOPE_EDGE_SECONDS + sustainSeconds,
-      playbackTimeSeconds + durationSeconds - ENVELOPE_EDGE_SECONDS,
-    );
-    const decayEndTimeSeconds = sustainEndTimeSeconds + ENVELOPE_EDGE_SECONDS;
+    const decayStartTimeSeconds = playbackTimeSeconds + durationSeconds - ENVELOPE_EDGE_SECONDS;
+    const decayEndTimeSeconds = playbackTimeSeconds + durationSeconds;
     const oscillatorNode = this.audioContext.createOscillator();
     const gainNode = this.audioContext.createGain();
 
@@ -101,10 +79,10 @@ export class PomodoroTimerAudioEngine {
     oscillatorNode.frequency.setValueAtTime(frequencyHz, playbackTimeSeconds);
     gainNode.gain.setValueAtTime(SILENT_GAIN, playbackTimeSeconds);
     gainNode.gain.exponentialRampToValueAtTime(
-      attackGain,
+      NOTIFICATION_ATTACK_GAIN,
       playbackTimeSeconds + ENVELOPE_EDGE_SECONDS,
     );
-    gainNode.gain.setValueAtTime(attackGain, sustainEndTimeSeconds);
+    gainNode.gain.setValueAtTime(NOTIFICATION_ATTACK_GAIN, decayStartTimeSeconds);
     gainNode.gain.exponentialRampToValueAtTime(SILENT_GAIN, decayEndTimeSeconds);
 
     oscillatorNode.connect(gainNode);
