@@ -1,6 +1,9 @@
-export const WORK_DURATION_SECONDS = 60 * 25;
-export const SHORT_BREAK_DURATION_SECONDS = 60 * 5;
-export const LONG_BREAK_DURATION_SECONDS = 60 * 15;
+const SECONDS_PER_MINUTE = 60;
+const MILLISECONDS_PER_SECOND = 1000;
+
+export const WORK_DURATION_SECONDS = SECONDS_PER_MINUTE * 25;
+export const SHORT_BREAK_DURATION_SECONDS = SECONDS_PER_MINUTE * 5;
+export const LONG_BREAK_DURATION_SECONDS = SECONDS_PER_MINUTE * 15;
 
 const MAX_CYCLE_COUNT = 4;
 
@@ -32,7 +35,7 @@ type PomodoroTimerSchedulerOptions = {
   onPhaseStarted?: (phaseStartTimeSeconds: number, durationSeconds: number) => void;
 };
 
-const TICK_INTERVAL_MILLISECONDS = 1000;
+const TICK_INTERVAL_MILLISECONDS = MILLISECONDS_PER_SECOND;
 
 export class PomodoroTimerScheduler {
   private tickerIntervalId: ReturnType<typeof setInterval> | null = null;
@@ -182,8 +185,12 @@ export class PomodoroTimerScheduler {
       return;
     }
 
-    const remainingMilliseconds = (this.endTimeSeconds - currentTimeSeconds) * 1000;
-    const remainingSeconds = Math.max(0, Math.ceil(remainingMilliseconds / 1000));
+    const remainingMilliseconds =
+      (this.endTimeSeconds - currentTimeSeconds) * MILLISECONDS_PER_SECOND;
+    const remainingSeconds = Math.max(
+      0,
+      Math.ceil(remainingMilliseconds / MILLISECONDS_PER_SECOND),
+    );
 
     if (remainingMilliseconds > 0) {
       const previousState = this.state;

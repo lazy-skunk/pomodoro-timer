@@ -8,13 +8,14 @@ import {
 } from "./PomodoroScheduler";
 
 const LOW_ALARM_THRESHOLD_SECONDS = 3;
+const MILLISECONDS_PER_SECOND = 1000;
 
 type PreparedClock = {
   currentTimeSeconds: number;
   getCurrentTimeSeconds: () => number | null;
 };
 
-const getPerformanceNowSeconds = () => performance.now() / 1000;
+const getPerformanceNowSeconds = () => performance.now() / MILLISECONDS_PER_SECOND;
 
 const createPerformanceClock = (): PreparedClock => ({
   currentTimeSeconds: getPerformanceNowSeconds(),

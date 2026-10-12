@@ -11,10 +11,11 @@ const POMODORO_COLOR_RANGE = {
   greenEnd: 32,
   blueValue: 0,
 } as const;
+const SECONDS_PER_MINUTE = 60;
 
 export const formatSecondsAsClock = (totalSeconds: number) => {
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
+  const minutes = Math.floor(totalSeconds / SECONDS_PER_MINUTE);
+  const seconds = totalSeconds % SECONDS_PER_MINUTE;
   return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
 };
 
