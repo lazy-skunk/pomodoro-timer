@@ -1,6 +1,6 @@
-import { usePomodoroTimer } from "./usePomodoroTimer";
-import { POMODORO_TIMER_STATUS, type PomodoroTimerPhase } from "./PomodoroScheduler";
 import { formatSecondsAsClock, resolvePomodoros } from "./pomodoro";
+import { POMODORO_TIMER_STATUS, type PomodoroTimerPhase } from "./PomodoroScheduler";
+import { usePomodoroTimer } from "./usePomodoroTimer";
 
 const statusTextByPhase = {
   [POMODORO_TIMER_STATUS.IDLE]: "Ready",

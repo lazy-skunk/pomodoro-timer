@@ -1,10 +1,11 @@
 import { describe, expect, it } from "vite-plus/test";
-import { POMODORO_TIMER_STATUS, WORK_DURATION_SECONDS } from "./PomodoroScheduler";
+
 import {
   formatSecondsAsClock,
   getPomodoroColorForRemainingSeconds,
   resolvePomodoros,
 } from "./pomodoro";
+import { POMODORO_TIMER_STATUS, WORK_DURATION_SECONDS } from "./PomodoroScheduler";
 
 describe("pomodoro utils", () => {
   it("formats seconds as a clock string", () => {
