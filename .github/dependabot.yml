@@ -26,6 +26,42 @@ updates:
 
   - package-ecosystem: "npm"
     directory: "/"
+    groups:
+      react:
+        patterns:
+          - "react"
+          - "react-dom"
+          - "@types/react"
+          - "@types/react-dom"
+      tailwindcss:
+        patterns:
+          - "tailwindcss"
+          - "@tailwindcss/*"
+      vite-plus:
+        patterns:
+          - "vite"
+          - "vite-plus"
+          - "@voidzero-dev/vite-plus-core"
+          - "@vitest/*"
+      react-security:
+        applies-to: security-updates
+        patterns:
+          - "react"
+          - "react-dom"
+          - "@types/react"
+          - "@types/react-dom"
+      tailwindcss-security:
+        applies-to: security-updates
+        patterns:
+          - "tailwindcss"
+          - "@tailwindcss/*"
+      vite-plus-security:
+        applies-to: security-updates
+        patterns:
+          - "vite"
+          - "vite-plus"
+          - "@voidzero-dev/vite-plus-core"
+          - "@vitest/*"
     schedule:
       interval: "weekly"
       day: "monday"
