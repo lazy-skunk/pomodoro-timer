@@ -35,7 +35,7 @@ export function App() {
   return (
     <div className="bg-background text-foreground flex min-h-screen flex-col items-center justify-center gap-5 p-3 text-center">
       <header>
-        <h1 className="text-3xl font-bold">
+        <h1 className="text-lg font-semibold">
           <a href="#">Pomodoro Timer</a>
         </h1>
       </header>
