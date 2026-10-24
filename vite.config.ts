@@ -5,6 +5,7 @@ import { defineConfig, lazyPlugins } from "vite-plus";
 // https://vite.dev/config/
 export default defineConfig({
   base: "/pomodoro-timer/",
+  build: { license: { fileName: "license.md" } },
   fmt: { sortImports: {}, sortTailwindcss: {} },
   lint: {
     plugins: ["react", "typescript", "oxc"],
