@@ -4,4 +4,5 @@
   "name": "pomodoro-timer",
   // Set this to today's date
   "compatibility_date": "2026-10-31",
+  "previews": {},
 }
