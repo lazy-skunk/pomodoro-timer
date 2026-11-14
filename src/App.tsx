@@ -1,5 +1,6 @@
-import { formatSecondsAsClock, resolvePomodoros } from "./pomodoro";
+import { Pomodoro } from "./Pomodoro";
 import { POMODORO_TIMER_STATUS, type PomodoroTimerPhase } from "./PomodoroScheduler";
+import { formatSecondsAsClock, resolvePomodoros } from "./pomodoroUtils";
 import { usePomodoroTimer } from "./usePomodoroTimer";
 
 const statusTextByPhase = {
@@ -43,11 +44,13 @@ export function App() {
             {formatSecondsAsClock(timerState.remainingSeconds)}
           </div>
           <p className="font-semibold">{statusText}</p>
-          {errorMessage && (
-            <p role="alert" className="text-red-500">
-              {errorMessage}
-            </p>
-          )}
+          <div role="alert" className="empty:absolute">
+            {errorMessage && (
+              <p className="text-red-500 motion-safe:transition-opacity motion-safe:starting:opacity-0">
+                {errorMessage}
+              </p>
+            )}
+          </div>
         </div>
 
         <div className="flex flex-wrap items-center justify-center gap-2">
@@ -95,20 +98,9 @@ export function App() {
 
         {pomodoros.length > 0 && (
           <>
-            <div className="flex max-w-3xl flex-wrap justify-center">
+            <div className="flex max-w-3xl flex-wrap justify-center gap-x-2 gap-y-4">
               {pomodoros.map((pomodoro) => (
-                <div
-                  key={pomodoro.id}
-                  className="pomodoro motion-safe:transition-opacity motion-safe:starting:opacity-0"
-                  style={{ backgroundColor: pomodoro.color }}
-                >
-                  <div className="stem-leaf" />
-                  <div className="stem-leaf leaf-1" />
-                  <div className="stem-leaf leaf-2" />
-                  <div className="stem-leaf leaf-3" />
-                  <div className="stem-leaf leaf-4" />
-                  <div className="stem-leaf leaf-5" />
-                </div>
+                <Pomodoro key={pomodoro.id} color={pomodoro.color} />
               ))}
             </div>
             <p role="status">

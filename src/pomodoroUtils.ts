@@ -5,11 +5,12 @@ import {
 } from "./PomodoroScheduler";
 
 const POMODORO_COLOR_RANGE = {
-  redStart: 64,
-  redEnd: 255,
-  greenStart: 128,
-  greenEnd: 32,
-  blueValue: 0,
+  redStart: 1,
+  redEnd: 206,
+  greenStart: 102,
+  greenEnd: 21,
+  blueStart: 55,
+  blueEnd: 21,
 } as const;
 const SECONDS_PER_MINUTE = 60;
 
@@ -34,7 +35,12 @@ export const getPomodoroColorForRemainingSeconds = (
       (POMODORO_COLOR_RANGE.greenEnd - POMODORO_COLOR_RANGE.greenStart) * ratio,
   );
 
-  return `rgb(${redValue}, ${greenValue}, ${POMODORO_COLOR_RANGE.blueValue})`;
+  const blueValue = Math.floor(
+    POMODORO_COLOR_RANGE.blueStart +
+      (POMODORO_COLOR_RANGE.blueEnd - POMODORO_COLOR_RANGE.blueStart) * ratio,
+  );
+
+  return `rgb(${redValue}, ${greenValue}, ${blueValue})`;
 };
 
 type Pomodoro = {

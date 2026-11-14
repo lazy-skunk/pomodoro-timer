@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vite-plus/test";
 
+import { POMODORO_TIMER_STATUS, WORK_DURATION_SECONDS } from "./PomodoroScheduler";
 import {
   formatSecondsAsClock,
   getPomodoroColorForRemainingSeconds,
   resolvePomodoros,
-} from "./pomodoro";
-import { POMODORO_TIMER_STATUS, WORK_DURATION_SECONDS } from "./PomodoroScheduler";
+} from "./pomodoroUtils";
 
 describe("pomodoro utils", () => {
   it("formats seconds as a clock string", () => {
@@ -16,17 +16,20 @@ describe("pomodoro utils", () => {
 
   it("maps work progress to a tomato color", () => {
     expect(getPomodoroColorForRemainingSeconds(WORK_DURATION_SECONDS, WORK_DURATION_SECONDS)).toBe(
-      "rgb(64, 128, 0)",
+      "rgb(1, 102, 55)",
     );
-    expect(getPomodoroColorForRemainingSeconds(0, WORK_DURATION_SECONDS)).toBe("rgb(255, 32, 0)");
+    expect(
+      getPomodoroColorForRemainingSeconds(WORK_DURATION_SECONDS / 2, WORK_DURATION_SECONDS),
+    ).toBe("rgb(103, 61, 38)");
+    expect(getPomodoroColorForRemainingSeconds(0, WORK_DURATION_SECONDS)).toBe("rgb(206, 21, 21)");
   });
 
   it("clamps tomato colors outside the work duration", () => {
     expect(
       getPomodoroColorForRemainingSeconds(WORK_DURATION_SECONDS + 1, WORK_DURATION_SECONDS),
-    ).toBe("rgb(64, 128, 0)");
-    expect(getPomodoroColorForRemainingSeconds(-1, WORK_DURATION_SECONDS)).toBe("rgb(255, 32, 0)");
-    expect(getPomodoroColorForRemainingSeconds(0, 0)).toBe("rgb(255, 32, 0)");
+    ).toBe("rgb(1, 102, 55)");
+    expect(getPomodoroColorForRemainingSeconds(-1, WORK_DURATION_SECONDS)).toBe("rgb(206, 21, 21)");
+    expect(getPomodoroColorForRemainingSeconds(0, 0)).toBe("rgb(206, 21, 21)");
   });
 
   it("returns no pomodoros while idle", () => {
@@ -49,8 +52,8 @@ describe("pomodoro utils", () => {
         isPaused: false,
       }),
     ).toEqual([
-      { id: 0, color: "rgb(255, 32, 0)" },
-      { id: 1, color: "rgb(159, 80, 0)" },
+      { id: 0, color: "rgb(206, 21, 21)" },
+      { id: 1, color: "rgb(103, 61, 38)" },
     ]);
   });
 
@@ -63,8 +66,8 @@ describe("pomodoro utils", () => {
         isPaused: false,
       }),
     ).toEqual([
-      { id: 0, color: "rgb(255, 32, 0)" },
-      { id: 1, color: "rgb(255, 32, 0)" },
+      { id: 0, color: "rgb(206, 21, 21)" },
+      { id: 1, color: "rgb(206, 21, 21)" },
     ]);
   });
 });
