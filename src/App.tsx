@@ -39,7 +39,7 @@ export function App() {
 
       <main className="flex flex-col items-center gap-4">
         <div className="grid gap-2">
-          <div className="text-6xl font-bold">
+          <div className="text-9xl font-bold">
             {formatSecondsAsClock(timerState.remainingSeconds)}
           </div>
           <p className="font-semibold">{statusText}</p>
