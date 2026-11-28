@@ -14,13 +14,6 @@ updates:
       time: "00:00"
       timezone: "Asia/Tokyo"
 
-  - package-ecosystem: "docker-compose"
-    directory: "/"
-    schedule:
-      interval: "daily"
-      time: "00:00"
-      timezone: "Asia/Tokyo"
-
   - package-ecosystem: "npm"
     directory: "/"
     groups:
@@ -39,6 +32,7 @@ updates:
           - "vite"
           - "vite-plus"
           - "@voidzero-dev/vite-plus-core"
+          - "@vitejs/plugin-react"
           - "@vitest/*"
       react-security:
         applies-to: security-updates
@@ -58,6 +52,7 @@ updates:
           - "vite"
           - "vite-plus"
           - "@voidzero-dev/vite-plus-core"
+          - "@vitejs/plugin-react"
           - "@vitest/*"
     schedule:
       interval: "daily"
